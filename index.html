@@ -96,7 +96,76 @@
         /* Sidebar */
         aside {
             background: var(--sidebar-bg) !important;
-            transition: background 0.3s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 16rem;
+            /* 64 (w-64) */
+            position: relative;
+        }
+
+        .sidebar-collapsed {
+            width: 4.5rem !important;
+            /* 18 */
+        }
+
+        .sidebar-collapsed .sidebar-label,
+        .sidebar-collapsed #sidebar-logo-text {
+            display: none;
+        }
+
+        .sidebar-collapsed .sidebar-logo-container {
+            padding: 1.5rem 0.5rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .sidebar-collapsed .sidebar-logo-container h2 {
+            justify-content: center;
+            gap: 0;
+        }
+
+        .sidebar-logo-container h2 span {
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sidebar-logo-container h2 span:hover {
+            transform: scale(1.08);
+        }
+
+        .sidebar-collapsed .sidebar-btn {
+            justify-content: center;
+            padding: 0.75rem 0;
+        }
+
+        .sidebar-collapsed .sidebar-btn i {
+            margin: 0;
+            font-size: 1.25rem;
+        }
+
+        .sidebar-collapsed h2 {
+            justify-content: center;
+        }
+
+        .sidebar-toggle-btn {
+            position: absolute;
+            right: -12px;
+            top: 5rem;
+            width: 24px;
+            height: 24px;
+            background: var(--accent);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 50;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateY(-50%);
+        }
+
+        .sidebar-collapsed .sidebar-toggle-btn {
+            transform: translateY(-50%) rotate(180deg);
         }
 
         /* Header */
@@ -104,7 +173,7 @@
             background: var(--header-bg) !important;
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            transition: background 0.3s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         /* Active sidebar item */
@@ -327,6 +396,27 @@
             }
         }
 
+        /* -----------------------------------------
+           Full Width Custom Selects (for Forms)
+           ----------------------------------------- */
+        .custom-select-wrapper.w-full {
+            display: block;
+            width: 100%;
+        }
+
+        .custom-select-wrapper.w-full .custom-select-display {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .custom-select-wrapper.w-full .custom-select-options {
+            left: 0;
+            /* Anchor left so it stays within the parent container */
+            right: auto;
+            width: 100%;
+            min-width: 100%;
+        }
+
         .theme-input:focus {
             outline: none;
             border-color: var(--input-focus);
@@ -434,6 +524,63 @@
             border-bottom-left-radius: 12px;
             border-bottom-right-radius: 12px;
             z-index: 10;
+        }
+
+        /* Profile Dropdown */
+        .profile-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .profile-menu {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 10px);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            min-width: 200px;
+            z-index: 100;
+            overflow: hidden;
+            display: none;
+            animation: slideIn 0.2s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .profile-menu.show {
+            display: block;
+        }
+
+        .profile-menu-item {
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--text-primary);
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+
+        .profile-menu-item:hover {
+            background: var(--row-hover);
+        }
+
+        .profile-menu-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
         }
 
         .whatsapp-chat-area {
@@ -770,13 +917,17 @@
     <div id="main-app" class="hidden flex h-screen overflow-hidden">
 
         <!-- Sidebar -->
-        <aside class="w-64 border-r flex flex-col flex-shrink-0" style="border-color: var(--border-color)">
-            <div class="p-6">
-                <h2 class="text-xl font-bold flex items-center gap-2">
-                    <span class="p-2 bg-blue-600 rounded-lg text-white shadow-lg shadow-blue-500/30"><i
+        <aside id="sidebar" class="flex flex-col flex-shrink-0 transition-all duration-300"
+            style="border-color: var(--border-color)">
+            <div class="sidebar-toggle-btn" onclick="toggleSidebar()">
+                <i class="fas fa-chevron-left"></i>
+            </div>
+            <div class="p-6 sidebar-logo-container">
+                <h2 class="text-xl font-bold flex items-center gap-2 overflow-hidden">
+                    <span class="p-2 bg-blue-600 rounded-lg text-white shadow-lg shadow-blue-500/30 flex-shrink-0"><i
                             class="fas fa-users-rays"></i></span>
-                    <span
-                        class="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-blue-200">Recruitment
+                    <span id="sidebar-logo-text"
+                        class="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-blue-200 whitespace-nowrap">Recruitment
                         Suite HR</span>
                 </h2>
             </div>
@@ -784,64 +935,65 @@
                 <a href="#" onclick="showSection('dashboard')"
                     class="sidebar-btn flex items-center gap-3 p-3 rounded-lg transition-colors sidebar-item-active"
                     id="btn-nav-dashboard" style="color: var(--text-secondary)">
-                    <i class="fas fa-chart-line w-5"></i> Dashboard
+                    <i class="fas fa-chart-line w-5 flex-shrink-0"></i> <span
+                        class="sidebar-label whitespace-nowrap">Dashboard</span>
                 </a>
                 <a href="#" onclick="showSection('companies')"
                     class="sidebar-btn flex items-center gap-3 p-3 rounded-lg transition-colors" id="btn-nav-companies"
                     style="color: var(--text-secondary)">
-                    <i class="fas fa-building w-5"></i> Companies
+                    <i class="fas fa-building w-5 flex-shrink-0"></i> <span
+                        class="sidebar-label whitespace-nowrap">Companies</span>
                 </a>
                 <a href="#" onclick="showSection('jobs')"
                     class="sidebar-btn flex items-center gap-3 p-3 rounded-lg transition-colors" id="btn-nav-jobs"
                     style="color: var(--text-secondary)">
-                    <i class="fas fa-briefcase w-5"></i> Job Openings
+                    <i class="fas fa-briefcase w-5 flex-shrink-0"></i> <span class="sidebar-label whitespace-nowrap">Job
+                        Openings</span>
                 </a>
                 <a href="#" onclick="showSection('candidates')"
                     class="sidebar-btn flex items-center gap-3 p-3 rounded-lg transition-colors" id="btn-nav-candidates"
                     style="color: var(--text-secondary)">
-                    <i class="fas fa-user-tie w-5"></i> Candidates
+                    <i class="fas fa-user-tie w-5 flex-shrink-0"></i> <span
+                        class="sidebar-label whitespace-nowrap">Candidates</span>
                 </a>
                 <a href="#" onclick="showSection('interviews')"
                     class="sidebar-btn flex items-center gap-3 p-3 rounded-lg transition-colors" id="btn-nav-interviews"
                     style="color: var(--text-secondary)">
-                    <i class="fas fa-calendar-alt w-5"></i> Interviews
+                    <i class="fas fa-calendar-alt w-5 flex-shrink-0"></i> <span
+                        class="sidebar-label whitespace-nowrap">Interviews</span>
                 </a>
                 <a href="#" onclick="showSection('messaging')"
                     class="sidebar-btn flex items-center gap-3 p-3 rounded-lg transition-colors" id="btn-nav-messaging"
                     style="color: var(--text-secondary)">
-                    <i class="fas fa-paper-plane w-5 text-blue-500"></i> Messaging
+                    <i class="fas fa-paper-plane w-5 text-blue-500 flex-shrink-0"></i> <span
+                        class="sidebar-label whitespace-nowrap">Messaging</span>
                 </a>
                 <a href="#" onclick="showSection('reports')"
                     class="sidebar-btn flex items-center gap-3 p-3 rounded-lg transition-colors" id="btn-nav-reports"
                     style="color: var(--text-secondary)">
-                    <i class="fas fa-file-excel w-5 text-green-500"></i> Reports
+                    <i class="fas fa-file-excel w-5 text-green-500 flex-shrink-0"></i> <span
+                        class="sidebar-label whitespace-nowrap">Reports</span>
                 </a>
             </nav>
-            <div class="p-4 border-t" style="border-color: var(--border-color)">
-                <div class="flex items-center gap-3 mb-4 px-2">
-                    <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-xs font-bold text-white"
-                        id="user-initial">U</div>
-                    <span class="text-sm truncate" style="color: var(--text-secondary)"
-                        id="user-email">user@email.com</span>
-                </div>
-                <button id="btn-logout"
-                    class="w-full flex items-center gap-3 p-2 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </button>
-            </div>
         </aside>
 
         <!-- Main Content -->
         <main class="flex-1 flex flex-col overflow-hidden" style="background: var(--bg-primary)">
-            <header class="h-24 border-b grid grid-cols-[250px_1fr_100px] items-center px-8 sticky top-0 z-30 shadow-sm"
+            <header class="h-24 border-b flex items-center justify-between px-8 sticky top-0 z-30 shadow-sm"
                 style="border-color: var(--border-color); background: var(--bg-primary)">
-                <h2 id="section-title" class="text-xl font-semibold">Dashboard</h2>
 
-                <div class="flex justify-center px-4">
-                    <div class="relative w-full max-w-5xl group flex items-center">
-                        <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
+                <div class="flex items-center gap-6">
+                    <h2 id="section-title"
+                        class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
+                        Dashboard</h2>
+                </div>
+
+                <div class="flex-1 flex justify-center px-8">
+                    <div class="relative w-full max-w-2xl group">
+                        <i
+                            class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-lg transition-colors group-focus-within:text-blue-500"></i>
                         <input type="text" id="global-search" placeholder="Search candidates, jobs, companies..."
-                            class="theme-input search-input w-full bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 transition-all">
+                            class="theme-input search-input w-full bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700/50 focus:ring-4 focus:ring-blue-500/10 transition-all !h-12 !py-0">
 
                         <div class="absolute right-5 top-1/2 -translate-y-1/2 flex items-center gap-3">
                             <div id="search-count"
@@ -856,13 +1008,43 @@
                     </div>
                 </div>
 
-                <div class="flex items-center justify-end gap-3">
+                <div class="flex items-center gap-4">
+                    <!-- Theme Toggle -->
                     <button id="theme-toggle"
-                        class="p-2 rounded-full transition-colors hover:bg-blue-100 dark:hover:bg-slate-700"
+                        class="w-10 h-10 flex items-center justify-center rounded-xl transition-all hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
                         style="color: var(--text-secondary)">
                         <i class="fas fa-moon dark:hidden"></i>
                         <i class="fas fa-sun hidden dark:inline"></i>
                     </button>
+
+                    <!-- Profile Dropdown -->
+                    <div class="profile-dropdown">
+                        <button onclick="toggleProfileMenu(event)"
+                            class="flex items-center gap-3 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-700 group">
+                            <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform"
+                                id="user-initial-nav">U</div>
+                            <div class="hidden md:block text-left">
+                                <p class="text-xs font-bold leading-none" id="nav-user-name">User</p>
+                                <p class="text-[10px] text-slate-500 mt-1 truncate max-w-[120px]" id="nav-user-email">
+                                    user@email.com</p>
+                            </div>
+                            <i
+                                class="fas fa-chevron-down text-[10px] text-slate-400 ml-1 group-hover:translate-y-0.5 transition-transform"></i>
+                        </button>
+
+                        <div id="profile-menu" class="profile-menu">
+                            <div class="profile-menu-header">
+                                <p class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Signed in as
+                                </p>
+                                <p class="text-sm font-semibold truncate" id="menu-user-email">admin@recruitment.com</p>
+                            </div>
+                            <div class="border-t border-slate-100 dark:border-slate-800 my-1"></div>
+                            <div class="profile-menu-item text-red-500" id="nav-btn-logout">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>Logout</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </header>
 
@@ -974,9 +1156,10 @@
                         </div>
                         <div
                             class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800">
-                            <p class="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Offer Accept Rate
+                            <p class="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Offer to Join
+                                Ratio
                             </p>
-                            <p class="text-xl font-bold mt-1 text-indigo-500">92%</p>
+                            <p class="text-xl font-bold mt-1 text-indigo-500" id="stat-join-ratio">0%</p>
                         </div>
                     </div>
 
@@ -1016,11 +1199,20 @@
                         <div class="space-y-6">
                             <div class="glass-card p-6 rounded-2xl h-full flex flex-col">
                                 <h4 class="text-lg font-bold mb-6 flex items-center justify-between">
-                                    <span class="flex items-center gap-2"><i class="fas fa-clock text-orange-500"></i>
-                                        Upcoming Interviews</span>
-                                    <span
-                                        class="text-[10px] bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-full"
-                                        id="upcoming-count">0 Scheduled</span>
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-clock text-orange-500"></i>
+                                        Upcoming Interviews
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <button onclick="openAddInterviewModal()"
+                                            class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition p-1"
+                                            title="Schedule Interview">
+                                            <i class="fas fa-plus-circle text-lg"></i>
+                                        </button>
+                                        <span
+                                            class="text-[10px] bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-full"
+                                            id="upcoming-count">0 Scheduled</span>
+                                    </div>
                                 </h4>
                                 <div class="space-y-4 flex-1 overflow-y-auto pr-2" id="dashboard-interviews-list"
                                     style="max-height: 700px;">
@@ -1053,30 +1245,29 @@
                     </div>
                 </div>
 
-                <!-- JOBS VIEW -->
                 <div id="section-jobs" class="hidden space-y-6">
-                    <div class="flex flex-col xl:flex-row xl:justify-between xl:items-center gap-4">
+                    <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
                         <h3 class="text-2xl font-bold">Job Management</h3>
-                        <div class="flex flex-wrap gap-2 items-center">
+                        <div class="flex flex-wrap gap-2 items-center justify-end">
                             <select id="filter-job-status" onchange="renderJobs()"
-                                class="filter-select compact text-sm w-full md:w-auto min-w-[130px]">
+                                class="filter-select compact text-sm md:w-auto min-w-[130px]">
                                 <option value="all">All Statuses</option>
                                 <option value="Open">Open</option>
                                 <option value="Closed">Closed</option>
                             </select>
                             <select id="filter-job-priority" onchange="renderJobs()"
-                                class="filter-select compact text-sm w-full md:w-auto min-w-[120px]">
+                                class="filter-select compact text-sm md:w-auto min-w-[120px]">
                                 <option value="all">Priority: All</option>
                                 <option value="Urgent">Priority: Urgent</option>
                                 <option value="Medium">Priority: Medium</option>
                                 <option value="Low">Priority: Low</option>
                             </select>
                             <select id="filter-job-department" onchange="renderJobs()"
-                                class="filter-select text-sm w-full md:w-auto min-w-[140px]">
+                                class="filter-select text-sm md:w-auto min-w-[140px]">
                                 <option value="all">All Departments</option>
                             </select>
                             <select id="filter-job-designation" onchange="renderJobs()"
-                                class="filter-select text-sm w-full md:w-auto min-w-[140px]">
+                                class="filter-select text-sm md:w-auto min-w-[140px]">
                                 <option value="all">All Designations</option>
                             </select>
                             <button
@@ -1225,8 +1416,7 @@
                 <div id="section-interviews" class="hidden space-y-6">
                     <div class="flex justify-between items-center">
                         <h3 class="text-2xl font-bold">Interview Scheduler</h3>
-                        <button
-                            onclick="document.getElementById('form-interview').reset(); document.getElementById('form-interview-id').value = ''; document.getElementById('modal-interview-title').innerText = 'Schedule Interview'; openModal('modal-interview')"
+                        <button onclick="openAddInterviewModal()"
                             class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg gap-2 flex items-center">
                             <i class="fas fa-plus"></i> Schedule Interview
                         </button>
@@ -1786,6 +1976,44 @@
                     <textarea name="whyChangeJob" rows="2" class="theme-input rounded resize-y"></textarea>
                 </div>
 
+                <div class="col-span-full grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                    <div>
+                        <label class="block text-sm text-slate-500 dark:text-slate-400">Offer Letter Sent?</label>
+                        <select name="offerLetterSent" class="theme-input rounded">
+                            <option value="No">No</option>
+                            <option value="Yes">Yes</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="block text-sm text-slate-500 dark:text-slate-400">Candidate Resume <span
+                                class="text-[10px] text-blue-500 opacity-60 font-bold uppercase">(PDF/DOC)</span></label>
+                        <div class="flex items-center gap-2">
+                            <div class="relative flex-1">
+                                <button type="button" onclick="document.getElementById('resumeFileInput').click()"
+                                    class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 rounded-lg p-2 text-left transition-all flex items-center gap-2 overflow-hidden">
+                                    <i class="fas fa-file-upload text-blue-500 shrink-0"></i>
+                                    <span id="resumeFileLabel"
+                                        class="text-xs font-medium truncate text-slate-600 dark:text-slate-400">Select
+                                        File...</span>
+                                </button>
+                                <input type="file" id="resumeFileInput" accept=".pdf,.doc,.docx" class="hidden"
+                                    onchange="handleResumeSelection(event)">
+                            </div>
+                            <div id="existing-resume-actions" class="hidden flex items-center gap-1.5 shrink-0">
+                                <a id="resume-view-btn" href="#" target="_blank"
+                                    class="w-9 h-9 flex items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors border border-blue-100 dark:border-blue-800"
+                                    title="View Current Resume"><i class="fas fa-eye text-sm"></i></a>
+                                <button type="button" onclick="clearResumeSelection()"
+                                    class="w-9 h-9 flex items-center justify-center rounded-lg bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 transition-colors border border-red-100 dark:border-red-800"
+                                    title="Delete/Remove Resume"><i class="fas fa-trash-alt text-sm"></i></button>
+                            </div>
+                        </div>
+                        <input type="hidden" name="resumeUrl" id="resumeUrlHidden">
+                        <div id="resume-upload-status"
+                            class="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1 h-3"></div>
+                    </div>
+                </div>
+
                 <div class="col-span-full flex justify-end gap-3 mt-6 pt-4 border-t">
                     <button type="button" onclick="closeModal('modal-candidate')"
                         class="px-6 py-2 text-slate-400 hover:text-white">Cancel</button>
@@ -1878,25 +2106,85 @@
                     </div>
                     <div>
                         <label class="block text-sm mb-1 text-slate-500 dark:text-slate-400">Message Content</label>
-                        <p class="text-xs text-slate-500 mb-2">Variables: <code
-                                class="bg-slate-800 px-1 rounded text-blue-400 cursor-pointer hover:bg-slate-700"
-                                onclick="insertWaTag('name')">{{name}}</code> <code
-                                class="bg-slate-800 px-1 rounded text-blue-400 cursor-pointer hover:bg-slate-700"
-                                onclick="insertWaTag('jobTitle')">{{jobTitle}}</code> <code
-                                class="bg-slate-800 px-1 rounded text-blue-400 cursor-pointer hover:bg-slate-700"
-                                onclick="insertWaTag('company')">{{company}}</code> <code
-                                class="bg-slate-800 px-1 rounded text-blue-400 cursor-pointer hover:bg-slate-700"
-                                onclick="insertWaTag('companyAddress')">{{companyAddress}}</code> <code
-                                class="bg-slate-800 px-1 rounded text-blue-400 cursor-pointer hover:bg-slate-700"
-                                onclick="insertWaTag('interviewDate')">{{interviewDate}}</code> <code
-                                class="bg-slate-800 px-1 rounded text-blue-400 cursor-pointer hover:bg-slate-700"
-                                onclick="insertWaTag('interviewTime')">{{interviewTime}}</code> <code
-                                class="bg-slate-800 px-1 rounded text-blue-400 cursor-pointer hover:bg-slate-700"
-                                onclick="insertWaTag('interviewMode')">{{interviewMode}}</code></p>
+                        <div class="mb-3">
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Insert
+                                Variables</p>
+                            <div class="flex flex-wrap gap-1.5">
+                                <!-- Candidate Info -->
+                                <div class="flex flex-wrap gap-2 mb-2">
+                                    <span
+                                        class="text-[9px] font-bold text-slate-500 uppercase tracking-tighter w-full">Candidate</span>
+                                    <span
+                                        class="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded text-[10px] font-semibold cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 transition-colors"
+                                        onclick="insertWaTag('name')">Full Name</span>
+                                    <span
+                                        class="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded text-[10px] font-semibold cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 transition-colors"
+                                        onclick="insertWaTag('firstName')">First Name</span>
+                                    <span
+                                        class="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded text-[10px] font-semibold cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 transition-colors"
+                                        onclick="insertWaTag('phone')">Phone</span>
+                                    <span
+                                        class="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded text-[10px] font-semibold cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 transition-colors"
+                                        onclick="insertWaTag('email')">Email</span>
+                                    <span
+                                        class="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded text-[10px] font-semibold cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 transition-colors"
+                                        onclick="insertWaTag('stage')">Status</span>
+                                </div>
+                                <!-- Job Info -->
+                                <div class="flex flex-wrap gap-2 mb-2">
+                                    <span
+                                        class="text-[9px] font-bold text-slate-500 uppercase tracking-tighter w-full">Job
+                                        & Company</span>
+                                    <span
+                                        class="px-2 py-1 bg-slate-50 dark:bg-slate-900/30 text-slate-600 dark:text-slate-400 rounded text-[10px] font-semibold cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900/50 border border-slate-200 dark:border-slate-800 transition-colors"
+                                        onclick="insertWaTag('jobTitle')">Job Title</span>
+                                    <span
+                                        class="px-2 py-1 bg-slate-50 dark:bg-slate-900/30 text-slate-600 dark:text-slate-400 rounded text-[10px] font-semibold cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900/50 border border-slate-200 dark:border-slate-800 transition-colors"
+                                        onclick="insertWaTag('department')">Dept</span>
+                                    <span
+                                        class="px-2 py-1 bg-slate-50 dark:bg-slate-900/30 text-slate-600 dark:text-slate-400 rounded text-[10px] font-semibold cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900/50 border border-slate-200 dark:border-slate-800 transition-colors"
+                                        onclick="insertWaTag('salary')">Salary</span>
+                                    <span
+                                        class="px-2 py-1 bg-slate-50 dark:bg-slate-900/30 text-slate-600 dark:text-slate-400 rounded text-[10px] font-semibold cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900/50 border border-slate-200 dark:border-slate-800 transition-colors"
+                                        onclick="insertWaTag('company')">Company</span>
+                                    <span
+                                        class="px-2 py-1 bg-slate-50 dark:bg-slate-900/30 text-slate-600 dark:text-slate-400 rounded text-[10px] font-semibold cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900/50 border border-slate-200 dark:border-slate-800 transition-colors"
+                                        onclick="insertWaTag('location')">Location</span>
+                                </div>
+                                <!-- Interview Info -->
+                                <div class="flex flex-wrap gap-2 mb-2">
+                                    <span
+                                        class="text-[9px] font-bold text-slate-500 uppercase tracking-tighter w-full">Interview</span>
+                                    <span
+                                        class="px-2 py-1 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded text-[10px] font-semibold cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-900/50 border border-purple-200 dark:border-purple-800 transition-colors"
+                                        onclick="insertWaTag('interviewDate')">Date</span>
+                                    <span
+                                        class="px-2 py-1 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded text-[10px] font-semibold cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-900/50 border border-purple-200 dark:border-purple-800 transition-colors"
+                                        onclick="insertWaTag('interviewTime')">Time</span>
+                                    <span
+                                        class="px-2 py-1 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded text-[10px] font-semibold cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-900/50 border border-purple-200 dark:border-purple-800 transition-colors"
+                                        onclick="insertWaTag('interviewMode')">Mode</span>
+                                    <span
+                                        class="px-2 py-1 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded text-[10px] font-semibold cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-900/50 border border-purple-200 dark:border-purple-800 transition-colors"
+                                        onclick="insertWaTag('interviewer')">Interviewer</span>
+                                    <span
+                                        class="px-2 py-1 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded text-[10px] font-semibold cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-900/50 border border-purple-200 dark:border-purple-800 transition-colors"
+                                        onclick="insertWaTag('meetingLink')">Link/Place</span>
+                                </div>
+                                <!-- Misc -->
+                                <div class="flex flex-wrap gap-2">
+                                    <span
+                                        class="text-[9px] font-bold text-slate-500 uppercase tracking-tighter w-full">Misc</span>
+                                    <span
+                                        class="px-2 py-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded text-[10px] font-semibold cursor-pointer hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800 transition-colors"
+                                        onclick="insertWaTag('todayDate')">Today's Date</span>
+                                </div>
+                            </div>
+                        </div>
                         <textarea id="wa-template-content" name="content" required rows="7"
                             oninput="updateLivePreviewOnEdit()"
                             placeholder="Hi {{name}}, we have a {{jobTitle}} opening at our company..."
-                            class="theme-input rounded resize-y"></textarea>
+                            class="theme-input rounded resize-y font-mono text-sm leading-relaxed"></textarea>
                     </div>
                     <div class="flex gap-3 mt-6 pt-6 border-t justify-end">
                         <button type="button" onclick="closeModal('modal-wa-template')"
@@ -2172,7 +2460,7 @@
 
         // --- AUTH LOGIC ---
         const loginBtn = document.getElementById('btn-login');
-        const logoutBtn = document.getElementById('btn-logout');
+
         const resetBtn = document.getElementById('btn-reset');
 
         window.toggleAuthView = (view) => {
@@ -2251,15 +2539,26 @@
             });
         }
 
-        logoutBtn.addEventListener('click', () => signOut(auth));
+
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
                 document.getElementById('auth-container').classList.add('hidden');
                 document.getElementById('main-app').classList.remove('hidden');
-                document.getElementById('user-email').innerText = user.email;
-                document.getElementById('user-initial').innerText = user.email[0].toUpperCase();
+
+
+                // Update navbar profile
+                const navEmail = document.getElementById('nav-user-email');
+                const navName = document.getElementById('nav-user-name');
+                const navInitial = document.getElementById('user-initial-nav');
+                const menuEmail = document.getElementById('menu-user-email');
+
+                if (navEmail) navEmail.innerText = user.email;
+                if (navName) navName.innerText = user.displayName || user.email.split('@')[0];
+                if (navInitial) navInitial.innerText = (user.displayName ? user.displayName[0] : user.email[0]).toUpperCase();
+                if (menuEmail) menuEmail.innerText = user.email;
+
                 initApp();
             } else {
                 currentUser = null;
@@ -2347,10 +2646,14 @@
 
         function updateWaDropdowns() {
             const select = document.getElementById('wa-template-select');
+            if (!select) return;
             const currentVal = select.value;
             select.innerHTML = '<option value="">-- Choose Template --</option>' +
                 cachedWaTemplates.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
             if (currentVal && cachedWaTemplates.find(t => t.id === currentVal)) select.value = currentVal;
+
+            // Re-initialize custom select to sync the UI
+            try { initCustomSelects(); } catch (e) { console.warn('Sync failed in updateWaDropdowns', e); }
         }
 
         function renderWaCandidatesChecklist() {
@@ -2408,14 +2711,23 @@
 
             const variables = {
                 name: prospect ? prospect.name : 'Candidate Name',
+                firstName: prospect ? prospect.name.split(' ')[0] : 'Candidate',
                 phone: prospect ? (prospect.phone || '') : '',
                 email: prospect ? prospect.email : 'candidate@email.com',
+                stage: prospect ? (prospect.stage || 'Applied') : 'Applied',
                 jobTitle: job ? job.title : 'the position',
-                company: company ? company.name : (job ? (job.company || 'HirePulse Recruitment') : 'HirePulse Recruitment'),
+                department: job ? (job.department || '') : '',
+                designation: job ? (job.designation || '') : '',
+                salary: job ? (job.salary || '') : '',
+                location: job ? (job.location || '') : '',
+                company: company ? company.name : (job ? (job.company || 'Brawn Labs') : 'Brawn Labs'),
                 companyAddress: company ? (company.address || company.location || '') : '',
                 interviewDate: interview ? new Date(interview.dateTime).toLocaleDateString() : 'Date',
                 interviewTime: interview ? new Date(interview.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Time',
-                interviewMode: interview ? interview.mode : 'Mode'
+                interviewMode: interview ? interview.mode : 'Mode',
+                interviewer: interview ? (interview.interviewer || 'Interviewer') : 'Interviewer',
+                meetingLink: interview ? (interview.meetingLink || interview.location || '') : '',
+                todayDate: new Date().toLocaleDateString()
             };
 
             Object.keys(variables).forEach(key => {
@@ -2550,7 +2862,9 @@
                 const message = formatWaMessage(template.content, p);
 
                 const job = cachedJobs.find(j => j.id === p.jobId);
-                const subject = encodeURIComponent(`Message from HirePulse regarding ${job ? job.title : 'opportunities'}`);
+                const company = job ? cachedCompanies.find(c => c.id === job.companyId) : null;
+                const companyName = company ? company.name : (job ? (job.company || 'Recruitment Team') : 'Recruitment Team');
+                const subject = encodeURIComponent(`Message from ${companyName} regarding ${job ? job.title : 'opportunities'}`);
                 const body = encodeURIComponent(message);
 
                 const url = `mailto:${p.email}?subject=${subject}&body=${body}`;
@@ -2867,6 +3181,7 @@
                         </td>
                         <td class="px-6 py-4 text-right border-b border-slate-200 dark:border-slate-800">
                             <div class="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition">
+                                ${c.resumeUrl ? `<a href="${c.resumeUrl}" target="_blank" class="p-2 text-blue-500 hover:text-blue-600 bg-blue-50 dark:bg-blue-900/30 rounded shadow-sm" title="View Resume"><i class="fas fa-file-pdf"></i></a>` : ''}
                                 <button onclick="editCandidate('${c.id}')" class="p-2 text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 bg-slate-100 dark:bg-slate-800/80 rounded shadow-sm" title="Edit Profile"><i class="fas fa-edit"></i></button>
                                 <button onclick="deleteDocById('candidates', '${c.id}')" class="p-2 text-slate-400 hover:text-red-500 dark:hover:text-red-400 bg-slate-100 dark:bg-slate-800/80 rounded shadow-sm" title="Delete Candidate"><i class="fas fa-trash"></i></button>
                             </div>
@@ -2905,10 +3220,11 @@
                     </div>
                     <div class="flex items-center justify-between mt-3">
                         <div class="flex items-center gap-2">
-                            <button onclick="editCandidate('${c.id}')" class="px-3 py-1 rounded bg-slate-100 hover:bg-slate-200">Edit</button>
-                            <button onclick="deleteDocById('candidates', '${c.id}')" class="px-3 py-1 rounded bg-red-50 hover:bg-red-100 text-red-600">Delete</button>
+                            ${c.resumeUrl ? `<a href="${c.resumeUrl}" target="_blank" class="px-3 py-1 rounded bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center gap-1 text-xs"><i class="fas fa-file-pdf text-[10px]"></i> Resume</a>` : ''}
+                            <button onclick="editCandidate('${c.id}')" class="px-3 py-1 rounded bg-slate-100 hover:bg-slate-200 text-xs text-slate-600">Edit</button>
+                            <button onclick="deleteDocById('candidates', '${c.id}')" class="px-3 py-1 rounded bg-red-50 hover:bg-red-100 text-red-600 text-xs">Delete</button>
                         </div>
-                        <div class="text-xs text-slate-500">${budgetStatus.label}</div>
+                        <div class="text-[10px] uppercase font-bold tracking-wider ${budgetStatus.color.includes('green') ? 'text-green-500' : (budgetStatus.color.includes('orange') ? 'text-orange-500' : 'text-slate-400')}">${budgetStatus.label}</div>
                     </div>
                 </div>
                 `;
@@ -2967,9 +3283,27 @@
                         <p class="text-xs mt-1 lowercase font-bold tracking-tight" style="color: var(--text-muted)"><i class="fas ${i.mode && i.mode.includes('Video') ? 'fa-video text-blue-500' : 'fa-building text-orange-500'} mr-2"></i> ${i.mode || ''}</p>
                         ${i.interviewer ? `<p class="text-[10px] mt-2 italic font-medium" style="color: var(--text-muted)"><i class="fas fa-user-circle mr-1"></i> Interviewer: ${i.interviewer}</p>` : ''}
                     </div>
-                    <div class="flex gap-2">
+                    <div class="flex flex-col gap-2">
                         <button onclick="editInterview('${i.id}')" class="text-slate-400 hover:text-blue-500 p-2 opacity-0 group-hover:opacity-100 transition" title="Edit Interview"><i class="fas fa-edit"></i></button>
                         <button onclick="deleteDocById('interviews', '${i.id}')" class="text-slate-400 hover:text-red-500 p-2 opacity-0 group-hover:opacity-100 transition" title="Delete Interview"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+                <!-- Template Send Controls -->
+                <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center transition-all">
+                    <div class="flex-1 mr-4 relative">
+                        <!-- We use no-custom-select here if we want native, or skip it to get shiny custom selects -->
+                        <select id="template-select-${i.id}" class="theme-input text-xs py-1.5 px-2 rounded-lg w-full bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 no-custom-select" style="max-width: 180px;">
+                            <option value="">-- Choose Msg Template --</option>
+                            ${cachedWaTemplates.filter(t => t.type === 'Interview Reminder').map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="flex gap-2 shrink-0">
+                        <button onclick="sendInterviewWhatsApp('${i.id}')" class="w-8 h-8 flex items-center justify-center bg-[#25D366] hover:bg-[#128C7E] text-white rounded-full shadow-sm shadow-[#25D366]/20 transition-colors" title="Send WhatsApp">
+                            <i class="fab fa-whatsapp text-sm"></i>
+                        </button>
+                        <button onclick="sendInterviewEmail('${i.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-700 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white rounded-full shadow-sm transition-colors" title="Send Email">
+                            <i class="fas fa-envelope text-sm"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -2978,7 +3312,7 @@
         }
 
         // --- DASHBOARD ANALYTICS ---
-        let stageChart, budgetChart, sourceChart;
+        let stageChartInstance, budgetChartInstance, sourceChartInstance;
         function updateDashboard() {
             // Basic Counters
             const totalCandidates = cachedCandidates.length;
@@ -3044,12 +3378,23 @@
             }).length;
             document.getElementById('stat-monthly-hires').innerText = monthlyHires;
 
+            // Offer to Join Ratio
+            const hiredCount = cachedCandidates.filter(c => c.stage === 'Hired').length;
+            const selectedOffers = cachedCandidates.filter(c => c.stage === 'Selected').length;
+            const totalOffers = hiredCount + selectedOffers;
+            const joinRatio = totalOffers > 0 ? Math.round((hiredCount / totalOffers) * 100) : 0;
+
+            const joinRatioEl = document.getElementById('stat-join-ratio');
+            if (joinRatioEl) {
+                joinRatioEl.innerText = joinRatio + '%';
+            }
+
             // Pipeline Distribution Chart
             const stages = ['Applied', 'Screening', 'Interview', 'Selected', 'Rejected'];
             const stageCounts = stages.map(s => cachedCandidates.filter(c => c.stage === s).length);
 
-            if (stageChart) stageChart.destroy();
-            stageChart = new Chart(document.getElementById('stageChart'), {
+            if (stageChartInstance) stageChartInstance.destroy();
+            stageChartInstance = new Chart(document.getElementById('stageChart'), {
                 type: 'bar',
                 data: {
                     labels: stages,
@@ -3100,8 +3445,8 @@
                 chartData.push(otherCount);
             }
 
-            if (sourceChart) sourceChart.destroy();
-            sourceChart = new Chart(document.getElementById('sourceChart'), {
+            if (sourceChartInstance) sourceChartInstance.destroy();
+            sourceChartInstance = new Chart(document.getElementById('sourceChart'), {
                 type: 'doughnut',
                 data: {
                     labels: chartLabels,
@@ -3133,8 +3478,8 @@
                 return avgMonthly * 12;
             });
 
-            if (budgetChart) budgetChart.destroy();
-            budgetChart = new Chart(document.getElementById('budgetChart'), {
+            if (budgetChartInstance) budgetChartInstance.destroy();
+            budgetChartInstance = new Chart(document.getElementById('budgetChart'), {
                 type: 'line',
                 data: {
                     labels: jobLabels,
@@ -3392,13 +3737,82 @@
             openModal('modal-job');
         };
 
+        // Cloundinary Config
+        const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/drz2jldgj/auto/upload';
+        const CLOUDINARY_PRESET = 'resume_uploads'; // <--- IMPORTANT: User must create this unsigned preset
+        let pendingResumeFile = null;
+
+        window.handleResumeSelection = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            pendingResumeFile = file;
+            document.getElementById('resumeFileLabel').innerText = file.name.length > 20 ? file.name.substring(0, 20) + '...' : file.name;
+            document.getElementById('resume-upload-status').innerHTML = `<span class="text-amber-500"><i class="fas fa-circle-notch fa-spin"></i> Ready to upload</span>`;
+            document.getElementById('existing-resume-actions').classList.add('hidden'); // Hide existing actions if new file selected
+        };
+
+        window.clearResumeSelection = () => {
+            pendingResumeFile = null;
+            document.getElementById('resumeFileInput').value = '';
+            document.getElementById('resumeFileLabel').innerText = 'Select File...';
+            document.getElementById('resumeUrlHidden').value = '';
+            document.getElementById('resume-upload-status').innerHTML = '';
+            document.getElementById('existing-resume-actions').classList.add('hidden');
+        };
+
+        async function uploadResumeToCloudinary(file, publicId) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', CLOUDINARY_PRESET);
+            formData.append('resource_type', 'auto');
+            formData.append('folder', 'resume_uploads');
+            if (publicId) formData.append('public_id', publicId);
+
+            const res = await fetch(CLOUDINARY_URL, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+
+            if (data.error) {
+                console.error('Cloudinary Error Data:', data.error);
+                throw new Error(data.error.message || 'Upload failed');
+            }
+
+            // Clean the URL by removing the version (v1234567...) to make it look like the requested format
+            // Cloudinary allows viewing without the version number if the public ID is unique.
+            let cleanUrl = data.secure_url;
+            if (cleanUrl.includes('/v')) {
+                cleanUrl = cleanUrl.replace(/\/v\d+\//, '/');
+            }
+            return cleanUrl;
+        }
+
         document.getElementById('form-candidate').onsubmit = async (e) => {
             e.preventDefault();
             const btn = e.target.querySelector('button[type="submit"]');
-            const orig = btn.innerText; btn.innerText = "Saving..."; btn.disabled = true;
+            const orig = btn.innerText; btn.innerText = "Processing..."; btn.disabled = true;
             try {
                 const formData = new FormData(e.target);
                 const data = Object.fromEntries(formData.entries());
+
+                // Upload resume if a new file was selected
+                if (pendingResumeFile) {
+                    btn.innerText = "Uploading Resume...";
+                    document.getElementById('resume-upload-status').innerHTML = `<span class="text-blue-500"><i class="fas fa-spinner fa-spin"></i> Uploading...</span>`;
+
+                    // Generate Custom Filename: Name + Dept + Date
+                    const cleanName = (data.name || 'Candidate').trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+                    const cleanDept = (data.jobDepartment || 'Gen').trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+                    const now = new Date();
+                    const dateStr = `${now.getFullYear()}_${String(now.getMonth() + 1).padStart(2, '0')}_${String(now.getDate()).padStart(2, '0')}`;
+                    const customPublicId = `${cleanName}_${cleanDept}_${dateStr}`;
+
+                    const resumeUrl = await uploadResumeToCloudinary(pendingResumeFile, customPublicId);
+                    data.resumeUrl = resumeUrl;
+                    document.getElementById('resume-upload-status').innerHTML = `<span class="text-green-500"><i class="fas fa-check-circle"></i> Uploaded!</span>`;
+                    pendingResumeFile = null; // Clear pending
+                }
 
                 // Numbers formatting
                 data.expectedCTC = Number(data.expectedCTC);
@@ -3440,6 +3854,21 @@
                     form.elements[key].value = cand[key];
                 }
             }
+            pendingResumeFile = null;
+            document.getElementById('resumeFileInput').value = '';
+            document.getElementById('resumeFileLabel').innerText = 'Select File...';
+            document.getElementById('resume-upload-status').innerHTML = '';
+            const existingActions = document.getElementById('existing-resume-actions');
+
+            if (cand.resumeUrl) {
+                existingActions.classList.remove('hidden');
+                document.getElementById('resume-view-btn').href = cand.resumeUrl;
+                document.getElementById('resumeUrlHidden').value = cand.resumeUrl;
+            } else {
+                existingActions.classList.add('hidden');
+                document.getElementById('resumeUrlHidden').value = '';
+            }
+
             // Ensure job select shows the candidate's applied job and update custom select UI
             try {
                 const jobEl = form.elements['jobId'] || document.getElementById('candidate-job-select');
@@ -3479,6 +3908,8 @@
                 const data = Object.fromEntries(formData.entries());
 
                 const candidateId = data.candidateId || document.getElementById('interview-candidate-id-hidden').value;
+                const cand = cachedCandidates.find(c => c.id === candidateId);
+                const currentStage = cand ? cand.stage || "Applied" : "Applied";
 
                 const editId = data.id;
                 delete data.id;
@@ -3488,18 +3919,26 @@
                     showToast("Interview Updated!");
                 } else {
                     data.createdBy = currentUser.uid;
+                    // Save the stage before this interview was scheduled
+                    data.previousStage = currentStage;
                     await addDoc(collection(db, "interviews"), data);
                     showToast("Interview Scheduled!");
                 }
 
                 // SYNC: Update candidate stage in database
                 if (candidateId && data.status) {
-                    let newStage = "Interview";
-                    if (data.status === "Selected") newStage = "Selected";
-                    else if (data.status === "Rejected") newStage = "Rejected";
-                    else if (data.status === "Interviewed") newStage = "Interview";
+                    // Do not change status if candidate is already Selected or Rejected
+                    if (currentStage !== "Selected" && currentStage !== "Rejected") {
+                        let newStage = currentStage;
 
-                    await updateDoc(doc(db, "candidates", candidateId), { stage: newStage });
+                        if (data.status === "Selected") newStage = "Selected";
+                        else if (data.status === "Rejected") newStage = "Rejected";
+                        else if (data.status === "Scheduled" || data.status === "Interviewed" || data.status === "On Hold") newStage = "Interview";
+
+                        if (newStage !== currentStage) {
+                            await updateDoc(doc(db, "candidates", candidateId), { stage: newStage });
+                        }
+                    }
                 }
 
                 document.getElementById('modal-interview').classList.add('hidden');
@@ -3560,7 +3999,7 @@
             const cand = cachedCandidates.find(c => c.id === i.candidateId);
             if (!cand || !cand.phone) { alert("Candidate is missing a phone number."); return; }
 
-            const templateId = document.getElementById(`template - select - ${id} `)?.value;
+            const templateId = document.getElementById(`template-select-${id}`)?.value;
             let message = "";
 
             if (templateId) {
@@ -3585,7 +4024,7 @@
             const cand = cachedCandidates.find(c => c.id === i.candidateId);
             if (!cand || !cand.email) { alert("Candidate is missing an email address."); return; }
 
-            const templateId = document.getElementById(`template - select - ${id} `)?.value;
+            const templateId = document.getElementById(`template-select-${id}`)?.value;
             let body = "";
             let subject = "Interview Reminder";
 
@@ -3593,15 +4032,19 @@
                 const template = cachedWaTemplates.find(t => t.id === templateId);
                 body = formatWaMessage(template.content, cand, i);
                 const job = cachedJobs.find(j => j.id === cand.jobId);
-                subject = `Interview Reminder: ${job ? job.title : 'Position'} at HirePulse`;
+                const company = job ? cachedCompanies.find(c => c.id === job.companyId) : null;
+                const companyName = company ? company.name : (job ? (job.company || 'Recruitment Team') : 'Recruitment Team');
+                subject = `Interview Reminder: ${job ? job.title : 'Position'} at ${companyName}`;
             } else {
                 const job = cachedJobs.find(j => j.id === cand.jobId);
+                const company = job ? cachedCompanies.find(c => c.id === job.companyId) : null;
+                const companyName = company ? company.name : (job ? (job.company || 'Recruitment Team') : 'Recruitment Team');
                 const date = new Date(i.dateTime).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
-                subject = `Interview Reminder: ${job ? job.title : 'Position'} at HirePulse`;
-                body = `Hi ${cand.name}, \n\nThis is a reminder regarding your interview for the ${job ? job.title : 'position'}.\n\nScheduled on: ${date} \nMode: ${i.mode} \n\nPlease let us know if you have any questions.\n\nBest regards, \nRecruitment Team`;
+                subject = `Interview Reminder: ${job ? job.title : 'Position'} at ${companyName}`;
+                body = `Hi ${cand.name}, \n\nThis is a reminder regarding your interview for the ${job ? job.title : 'position'}.\n\nScheduled on: ${date} \nMode: ${i.mode} \n\nPlease let us know if you have any questions.\n\nBest regards, \n${companyName}`;
             }
 
-            const url = `mailto:${cand.email}?subject = ${encodeURIComponent(subject)}& body=${encodeURIComponent(body)} `;
+            const url = `mailto:${cand.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
             window.open(url, '_blank');
         };
 
@@ -3747,6 +4190,7 @@
                     "Why Changing Job": c.whyChangeJob || "N/A",
                     // ── Status ──
                     "Pipeline Stage": c.stage || "Applied",
+                    "Offer Letter Sent": c.offerLetterSent || "No",
                     "Added Date": c.createdAt ? new Date(c.createdAt.seconds * 1000).toLocaleDateString() : "N/A"
                 };
             });
@@ -3860,6 +4304,22 @@
         window.deleteDocById = async (col, id) => {
             if (confirm("Are you sure you want to permanently delete this?")) {
                 try {
+                    // INTERCEPT FOR INTERVIEWS: Revert candidate stage
+                    if (col === "interviews") {
+                        const interview = cachedInterviews.find(i => i.id === id);
+                        if (interview && interview.candidateId && interview.previousStage) {
+                            const cand = cachedCandidates.find(c => c.id === interview.candidateId);
+                            if (cand) {
+                                // Only revert if they aren't already explicitly selected/rejected
+                                if (cand.stage !== "Selected" && cand.stage !== "Rejected") {
+                                    await updateDoc(doc(db, "candidates", interview.candidateId), {
+                                        stage: interview.previousStage
+                                    });
+                                }
+                            }
+                        }
+                    }
+
                     await deleteDoc(doc(db, col, id));
                     showToast("Deleted Successfully");
                 } catch (e) { alert("Error deleting: " + e.message); }
@@ -4026,6 +4486,11 @@
 
                 const wrapper = document.createElement('div');
                 wrapper.className = 'custom-select-wrapper';
+
+                // Determine if this select should take full width based on its class
+                if (sel.classList && (sel.classList.contains('theme-input') || sel.classList.contains('w-full'))) {
+                    wrapper.classList.add('w-full');
+                }
 
                 const display = document.createElement('div');
                 display.className = 'custom-select-display';
@@ -4212,6 +4677,59 @@
         // Initialize custom selects once DOM is ready for interactive controls
         setTimeout(() => { try { initCustomSelects(); } catch (e) { console.warn('initCustomSelects failed', e); } }, 300);
 
+        // Sidebar Collapse Logic
+        window.toggleSidebar = () => {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) {
+                sidebar.classList.toggle('sidebar-collapsed');
+                localStorage.setItem('sidebar-collapsed', sidebar.classList.contains('sidebar-collapsed'));
+            }
+        };
+
+        // Profile Menu Logic
+        window.toggleProfileMenu = (e) => {
+            if (e) e.stopPropagation();
+            const menu = document.getElementById('profile-menu');
+            if (menu) {
+                menu.classList.toggle('show');
+            }
+        };
+
+        // Close dropdowns on outside click
+        window.addEventListener('click', (e) => {
+            const menu = document.getElementById('profile-menu');
+            if (menu && menu.classList.contains('show') && !e.target.closest('.profile-dropdown')) {
+                menu.classList.remove('show');
+            }
+        });
+
+        // Re-bind logout buttons including the one in navbar
+        const setupLogoutListeners = () => {
+            const logoutBtns = ['btn-logout', 'nav-btn-logout'];
+            logoutBtns.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    // Remove existing to avoid duplicates if any
+                    const newBtn = btn.cloneNode(true);
+                    btn.parentNode.replaceChild(newBtn, btn);
+                    newBtn.addEventListener('click', () => signOut(auth));
+                }
+            });
+        };
+
+        // Call after auth state change or in initApp
+        const originalInitApp = initApp;
+        initApp = async () => {
+            await originalInitApp();
+            setupLogoutListeners();
+
+            // Restore sidebar state
+            if (localStorage.getItem('sidebar-collapsed') === 'true') {
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar) sidebar.classList.add('sidebar-collapsed');
+            }
+        };
+
         // --- UTILS ---
         window.showSection = (sectionId) => {
             document.querySelectorAll('#content-area > div').forEach(div => div.classList.add('hidden'));
@@ -4304,8 +4822,9 @@
                 localStorage.setItem('theme', isDark ? 'dark' : 'light');
 
                 // Update charts if they exist
-                if (window.stageChart) updateChartTheme(window.stageChart);
-                if (window.budgetChart) updateChartTheme(window.budgetChart);
+                if (stageChartInstance) updateChartTheme(stageChartInstance);
+                if (budgetChartInstance) updateChartTheme(budgetChartInstance);
+                if (sourceChartInstance) updateChartTheme(sourceChartInstance);
             });
         }
 
@@ -4329,6 +4848,20 @@
         window.toggleCandidateView = toggleCandidateView;
         window.exportCandidatesCSV = exportCandidatesCSV;
         window.bulkSelectAndMessage = bulkSelectAndMessage;
+
+        window.openAddInterviewModal = () => {
+            const form = document.getElementById('form-interview');
+            if (form) form.reset();
+            const idField = document.getElementById('form-interview-id');
+            if (idField) idField.value = '';
+            const title = document.getElementById('modal-interview-title');
+            if (title) title.innerText = 'Schedule Interview';
+            const searchField = document.getElementById('interview-candidate-search');
+            if (searchField) searchField.value = '';
+            const hiddenId = document.getElementById('interview-candidate-id-hidden');
+            if (hiddenId) hiddenId.value = '';
+            openModal('modal-interview');
+        };
     </script>
 </body>
 
