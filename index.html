@@ -3863,28 +3863,39 @@
             const formData = new FormData();
             formData.append('file', file);
             formData.append('upload_preset', CLOUDINARY_PRESET);
-            formData.append('resource_type', 'auto');
+            formData.append('resource_type', 'raw'); // Better for Docs/PDFs
             formData.append('folder', 'resume_uploads');
             if (publicId) formData.append('public_id', publicId);
 
-            const res = await fetch(CLOUDINARY_URL, {
-                method: 'POST',
-                body: formData
-            });
-            const data = await res.json();
+            console.log('Uploading to Cloudinary...', { url: CLOUDINARY_URL, preset: CLOUDINARY_PRESET });
 
-            if (data.error) {
-                console.error('Cloudinary Error Data:', data.error);
-                throw new Error(data.error.message || 'Upload failed');
-            }
+            try {
+                const res = await fetch(CLOUDINARY_URL.replace('/auto/', '/raw/'), {
+                    method: 'POST',
+                    body: formData,
+                    mode: 'cors'
+                });
 
-            // Clean the URL by removing the version (v1234567...) to make it look like the requested format
-            // Cloudinary allows viewing without the version number if the public ID is unique.
-            let cleanUrl = data.secure_url;
-            if (cleanUrl.includes('/v')) {
-                cleanUrl = cleanUrl.replace(/\/v\d+\//, '/');
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    console.error('Cloudinary API Error:', errData);
+                    throw new Error(errData.error?.message || `HTTP ${res.status}`);
+                }
+
+                const data = await res.json();
+                if (data.error) throw new Error(data.error.message);
+
+                // Clean the URL by removing the version (v1234567...) to make it look like the requested format
+                // Cloudinary allows viewing without the version number if the public ID is unique.
+                let cleanUrl = data.secure_url;
+                if (cleanUrl.includes('/v')) {
+                    cleanUrl = cleanUrl.replace(/\/v\d+\//, '/');
+                }
+                return cleanUrl;
+            } catch (err) {
+                console.error('Cloudinary Internal Error:', err);
+                throw err;
             }
-            return cleanUrl;
         }
 
         document.getElementById('form-candidate').onsubmit = async (e) => {
@@ -4737,10 +4748,10 @@
                     });
                 }
 
-                // if none selected, show first enabled option as placeholder
+                // if none selected, show the currently selected option's text (or the first option)
                 if (!label.innerText) {
-                    const firstOpt = Array.from(sel.options).find(o => !o.disabled);
-                    label.innerText = firstOpt ? firstOpt.text : '';
+                    const currentOpt = sel.options[sel.selectedIndex] || sel.options[0];
+                    label.innerText = currentOpt ? currentOpt.text : '';
                 }
 
                 // toggle with click or keyboard
