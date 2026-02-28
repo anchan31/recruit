@@ -1564,10 +1564,16 @@
                             </div>
                             <p class="text-sm mb-6" style="color: var(--text-secondary)">Export all candidate details
                                 including CTCs, NP, Job association, and Stages.</p>
-                            <button onclick="fetchCandidatesReport()"
-                                class="w-full bg-slate-800 hover:bg-green-600 text-white p-3 rounded-xl transition duration-300 flex items-center justify-center gap-2 font-semibold shadow-lg">
-                                <i class="fas fa-download"></i> Export to XLSX
-                            </button>
+                            <div class="flex gap-2">
+                                <button onclick="fetchCandidatesReport()"
+                                    class="flex-1 bg-slate-800 hover:bg-green-600 text-white p-3 rounded-xl transition duration-300 flex items-center justify-center gap-2 font-semibold shadow-lg text-sm">
+                                    <i class="fas fa-download"></i> Quick Export
+                                </button>
+                                <button onclick="openAdvancedReport('candidates')"
+                                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-xl transition duration-300 flex items-center justify-center gap-2 font-semibold shadow-lg text-sm">
+                                    <i class="fas fa-filter"></i> Advanced Filter
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Jobs Report Card -->
@@ -1585,10 +1591,16 @@
                             </div>
                             <p class="text-sm mb-6" style="color: var(--text-secondary)">Detailed list of job openings
                                 with budgets, company associations, and current status.</p>
-                            <button onclick="fetchJobsReport()"
-                                class="w-full bg-slate-800 hover:bg-green-600 text-white p-3 rounded-xl transition duration-300 flex items-center justify-center gap-2 font-semibold shadow-lg">
-                                <i class="fas fa-download"></i> Export to XLSX
-                            </button>
+                            <div class="flex gap-2">
+                                <button onclick="fetchJobsReport()"
+                                    class="flex-1 bg-slate-800 hover:bg-green-600 text-white p-3 rounded-xl transition duration-300 flex items-center justify-center gap-2 font-semibold shadow-lg text-sm">
+                                    <i class="fas fa-download"></i> Quick Export
+                                </button>
+                                <button onclick="openAdvancedReport('jobs')"
+                                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-xl transition duration-300 flex items-center justify-center gap-2 font-semibold shadow-lg text-sm">
+                                    <i class="fas fa-filter"></i> Advanced Filter
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Companies Report Card -->
@@ -2013,9 +2025,10 @@
                                     onchange="handleResumeSelection(event)">
                             </div>
                             <div id="existing-resume-actions" class="hidden flex items-center gap-1.5 shrink-0">
-                                <a id="resume-view-btn" href="#" target="_blank"
+                                <button type="button" id="resume-view-btn-custom"
+                                    onclick="previewResume(document.getElementById('resumeUrlHidden').value)"
                                     class="w-9 h-9 flex items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors border border-blue-100 dark:border-blue-800"
-                                    title="View Current Resume"><i class="fas fa-eye text-sm"></i></a>
+                                    title="View Current Resume"><i class="fas fa-eye text-sm"></i></button>
                                 <button type="button" onclick="clearResumeSelection()"
                                     class="w-9 h-9 flex items-center justify-center rounded-lg bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 transition-colors border border-red-100 dark:border-red-800"
                                     title="Delete/Remove Resume"><i class="fas fa-trash-alt text-sm"></i></button>
@@ -2090,6 +2103,135 @@
                         Interview</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- MODAL: RESUME PREVIEWER -->
+    <div id="modal-resume-preview" class="fixed inset-0 bg-black/80 z-[150] hidden flex flex-col p-4 md:p-8">
+        <!-- Header removed as requested to give more room -->
+        <div class="flex-1 bg-white rounded-2xl overflow-hidden relative shadow-2xl">
+            <iframe id="resume-preview-iframe" class="w-full h-full border-none" src="about:blank"></iframe>
+            <div id="resume-preview-loader"
+                class="absolute inset-0 flex items-center justify-center bg-slate-50 dark:bg-slate-900 z-10 hidden">
+                <div class="flex flex-col items-center gap-3">
+                    <i class="fas fa-circle-notch fa-spin text-3xl text-blue-500"></i>
+                    <p class="text-xs font-bold uppercase tracking-widest text-slate-500">Loading Resume...</p>
+                </div>
+            </div>
+        </div>
+        <div class="mt-4 flex flex-wrap justify-center gap-3">
+            <button id="resume-download-btn-forced" onclick="downloadResumeCurrent()"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold flex items-center gap-2 shadow-lg transition-transform hover:scale-105">
+                <i class="fas fa-download"></i>
+                Download
+            </button>
+            <button onclick="shareResumeCurrent()"
+                class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg font-semibold flex items-center gap-2 shadow-lg transition-transform hover:scale-105">
+                <i class="fas fa-share-alt"></i>
+                Share Link
+            </button>
+            <button onclick="closeModal('modal-resume-preview')"
+                class="bg-slate-700 hover:bg-slate-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL: ADVANCED REPORT FILTER -->
+    <div id="modal-advanced-report"
+        class="fixed inset-0 bg-black/70 z-[150] hidden flex items-center justify-center p-4 md:p-8">
+        <div class="modal-box w-full max-w-6xl h-[90vh] rounded-xl flex flex-col overflow-hidden shadow-2xl">
+            <!-- Header -->
+            <div class="bg-blue-600 text-white px-6 py-4 flex justify-between items-center shadow-md">
+                <h3 class="text-xl font-bold flex items-center gap-2">
+                    <i class="fas fa-filter"></i>
+                    <span id="advanced-report-title">Advanced Report Filter</span>
+                </h3>
+                <button onclick="closeModal('modal-advanced-report')"
+                    class="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div
+                class="flex-1 flex overflow-hidden bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                <!-- Left Panel (Master Filter) -->
+                <div
+                    class="w-72 md:w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col z-10">
+                    <div
+                        class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/80">
+                        <h4 class="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                            <i class="fas fa-filter text-blue-500"></i> Master Filter
+                        </h4>
+                        <div class="flex gap-2">
+                            <button onclick="applyAdvancedFilters()"
+                                class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md shadow transition">Apply</button>
+                            <button onclick="clearAdvancedFilters()"
+                                class="text-xs bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-md transition">Clear</button>
+                        </div>
+                    </div>
+                    <div class="flex-1 p-5 overflow-y-auto space-y-5" id="advanced-report-filters-container">
+                        <!-- Filters dynamically injected here based on type -->
+                    </div>
+                </div>
+
+                <!-- Right Panel (Selection) -->
+                <div class="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900/50">
+                    <!-- Search Bar -->
+                    <div class="p-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+                        <div class="relative">
+                            <i
+                                class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="advanced-report-search" placeholder="Search in filtered results..."
+                                class="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-100 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium placeholder-slate-400 dark:placeholder-slate-500"
+                                oninput="renderAdvancedReportItems()">
+                        </div>
+                    </div>
+
+                    <!-- Table Header -->
+                    <div
+                        class="px-6 py-3 bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 flex items-center font-bold text-slate-600 dark:text-slate-300 text-sm">
+                        <div class="w-12 flex justify-center">
+                            <input type="checkbox" id="advanced-report-select-all"
+                                onchange="toggleAllReportSelection(this.checked)"
+                                class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 bg-white border-gray-300">
+                        </div>
+                        <div class="flex-1 grid grid-cols-2 gap-4" id="advanced-report-table-header">
+                            <!-- Dynamically injected headers -->
+                        </div>
+                    </div>
+
+                    <!-- Items List -->
+                    <div class="flex-1 overflow-y-auto bg-white dark:bg-slate-900" id="advanced-report-items-container">
+                        <!-- Items dynamically injected here -->
+                    </div>
+
+                    <!-- Count Footer -->
+                    <div
+                        class="px-6 py-3 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 dark:text-slate-400 flex justify-between items-center shadow-inner">
+                        <span id="advanced-report-total-count"
+                            class="bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded">Total: 0</span>
+                        <span id="advanced-report-selected-count"
+                            class="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">Selected:
+                            0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Toolbar -->
+            <div class="bg-slate-100 dark:bg-slate-800/90 p-4 flex justify-between items-center gap-4">
+                <div class="flex flex-wrap gap-4 items-center" id="advanced-report-options-container">
+                    <!-- Options checkboxes injected here based on type -->
+                </div>
+                <div class="flex gap-3 ml-auto">
+                    <button onclick="closeModal('modal-advanced-report')"
+                        class="px-6 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-600 transition font-semibold shadow-sm">Cancel</button>
+                    <button onclick="exportCustomReport()"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2 rounded-lg font-bold shadow-lg shadow-blue-500/30 flex items-center gap-2 transition hover:-translate-y-0.5"><i
+                            class="fas fa-file-excel"></i> Export Excel</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -2636,8 +2778,16 @@
 
 
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
+        onAuthStateChanged(auth, async (user) => {
+            if (user && !user.isAnonymous) {
+                // AUTHORIZATION CHECK
+                const allowedEmails = ['hrd@brawnlabs.in', 'talentacq@brawnlabs.in'];
+                if (!user.email || !allowedEmails.includes(user.email.toLowerCase())) {
+                    alert('Access Denied. Only authorized HR personnel can access this dashboard.');
+                    await auth.signOut();
+                    return;
+                }
+
                 currentUser = user;
                 document.getElementById('auth-container').classList.add('hidden');
                 document.getElementById('main-app').classList.remove('hidden');
@@ -2649,10 +2799,12 @@
                 const navInitial = document.getElementById('user-initial-nav');
                 const menuEmail = document.getElementById('menu-user-email');
 
-                if (navEmail) navEmail.innerText = user.email;
-                if (navName) navName.innerText = user.displayName || user.email.split('@')[0];
-                if (navInitial) navInitial.innerText = (user.displayName ? user.displayName[0] : user.email[0]).toUpperCase();
-                if (menuEmail) menuEmail.innerText = user.email;
+                const displayEmail = user.email;
+
+                if (navEmail) navEmail.innerText = displayEmail;
+                if (navName) navName.innerText = user.displayName || (user.email ? user.email.split('@')[0] : 'HR Admin');
+                if (navInitial) navInitial.innerText = (user.displayName ? user.displayName[0] : (displayEmail[0])).toUpperCase();
+                if (menuEmail) menuEmail.innerText = displayEmail;
 
                 startIdleTimer();
                 initApp();
@@ -3280,9 +3432,9 @@
                         </td>
                         <td class="px-6 py-4 text-right border-b border-slate-200 dark:border-slate-800">
                             <div class="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition">
-                                ${c.resumeUrl ? `<a href="${c.resumeUrl}" target="_blank" class="p-2 text-blue-500 hover:text-blue-600 bg-blue-50 dark:bg-blue-900/30 rounded shadow-sm" title="View Resume"><i class="fas fa-file-pdf"></i></a>` : ''}
+                                ${c.resumeUrl ? `<button onclick="previewResume('${c.resumeUrl}')" class="p-2 text-blue-500 hover:text-blue-600 bg-blue-50 dark:bg-blue-900/30 rounded shadow-sm" title="View Resume Internally"><i class="fas fa-eye"></i></button>` : ''}
                                 <button onclick="editCandidate('${c.id}')" class="p-2 text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 bg-slate-100 dark:bg-slate-800/80 rounded shadow-sm" title="Edit Profile"><i class="fas fa-edit"></i></button>
-                                <button onclick="deleteDocById('candidates', '${c.id}')" class="p-2 text-slate-400 hover:text-red-500 dark:hover:text-red-400 bg-slate-100 dark:bg-slate-800/80 rounded shadow-sm" title="Delete Candidate"><i class="fas fa-trash"></i></button>
+                                <button onclick="deleteDocById('candidates', '${c.id}')" class="p-2 text-slate-400 hover:text-red-500 dark:hover:text-red-400 bg-slate-100 dark:bg-slate-800/80 rounded shadow-sm" title="Delete Candidate"><i class="fas fa-trash-alt"></i></button>
                             </div>
                         </td>
                         </tr>
@@ -3319,7 +3471,7 @@
                     </div>
                     <div class="flex items-center justify-between mt-3">
                         <div class="flex items-center gap-2">
-                            ${c.resumeUrl ? `<a href="${c.resumeUrl}" target="_blank" class="px-3 py-1 rounded bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center gap-1 text-xs"><i class="fas fa-file-pdf text-[10px]"></i> Resume</a>` : ''}
+                            ${c.resumeUrl ? `<button onclick="previewResume('${c.resumeUrl}')" class="px-3 py-1 rounded bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center gap-1 text-xs"><i class="fas fa-eye text-[10px]"></i> View Resume</button>` : ''}
                             <button onclick="editCandidate('${c.id}')" class="px-3 py-1 rounded bg-slate-100 hover:bg-slate-200 text-xs text-slate-600">Edit</button>
                             <button onclick="deleteDocById('candidates', '${c.id}')" class="px-3 py-1 rounded bg-red-50 hover:bg-red-100 text-red-600 text-xs">Delete</button>
                         </div>
@@ -3453,7 +3605,7 @@
             const bEl = document.getElementById('stat-avg-budget');
             if (bEl) {
                 bEl.innerText = adherence + '%';
-                bEl.className = `text - xl font - bold mt - 1 ${adherence >= 80 ? 'text-green-500' : adherence >= 50 ? 'text-orange-500' : 'text-red-500'} `;
+                bEl.className = `text-xl font-bold mt-1 ${adherence >= 80 ? 'text-green-500' : adherence >= 50 ? 'text-orange-500' : 'text-red-500'} `;
             }
 
             // Median CTC calculation (stored as monthly → display as annual LPA for context)
@@ -3466,13 +3618,17 @@
             const medianAnnual = median * 12;
             document.getElementById('stat-median-ctc').innerText = medianAnnual ? `₹${(medianAnnual / 100000).toFixed(1)} L` : '₹0';
 
-            // Monthly Hires
+            // Monthly Hires (ONLY count 'Hired' stage as per user request)
             const currentMonth = new Date().getMonth();
             const currentYear = new Date().getFullYear();
             const monthlyHires = cachedCandidates.filter(c => {
-                if (c.stage !== 'Selected' && c.stage !== 'Hired') return false;
-                if (!c.createdAt) return false;
-                const d = new Date(c.createdAt.seconds * 1000);
+                if (c.stage !== 'Hired') return false;
+
+                // Use hiredAt if available, fallback to createdAt
+                const timestamp = c.hiredAt || c.createdAt;
+                if (!timestamp) return false;
+
+                const d = new Date(timestamp.seconds * 1000);
                 return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
             }).length;
             document.getElementById('stat-monthly-hires').innerText = monthlyHires;
@@ -3489,7 +3645,7 @@
             }
 
             // Pipeline Distribution Chart
-            const stages = ['Applied', 'Screening', 'Interview', 'Selected', 'Rejected'];
+            const stages = ['Applied', 'Screening', 'Interview', 'Selected', 'Hired', 'Rejected'];
             const stageCounts = stages.map(s => cachedCandidates.filter(c => c.stage === s).length);
 
             if (stageChartInstance) stageChartInstance.destroy();
@@ -3500,7 +3656,7 @@
                     datasets: [{
                         label: 'Candidates',
                         data: stageCounts,
-                        backgroundColor: ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444'],
+                        backgroundColor: ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#25D366', '#ef4444'],
                         borderRadius: 8
                     }]
                 },
@@ -3709,12 +3865,35 @@
                 delete data.id; // clear so it doesn't get saved as a field
 
                 if (editId) {
+                    // Manual Status Logic: If closingDate is in the past, set status to Closed
+                    if (data.closingDate) {
+                        const closeDate = new Date(data.closingDate);
+                        closeDate.setHours(23, 59, 59, 999);
+                        if (new Date() > closeDate) {
+                            data.status = 'Closed';
+                        } else {
+                            data.status = 'Open';
+                        }
+                    } else {
+                        // If date is cleared, default to Open unless it's already closed and no date was set
+                        // But typically if user is editing, they want it Open if no date is specified.
+                        data.status = 'Open';
+                    }
+
                     await updateDoc(doc(db, "jobs", editId), data);
                     showToast("Job Updated Successfully!");
                 } else {
                     data.createdBy = currentUser.uid;
                     data.createdAt = serverTimestamp();
-                    data.status = 'Open';
+
+                    // Initial Status Logic for New Jobs
+                    if (data.closingDate) {
+                        const closeDate = new Date(data.closingDate);
+                        closeDate.setHours(23, 59, 59, 999);
+                        data.status = new Date() > closeDate ? 'Closed' : 'Open';
+                    } else {
+                        data.status = 'Open';
+                    }
                     await addDoc(collection(db, "jobs"), data);
                     showToast("Job Created Successfully!");
                 }
@@ -3977,7 +4156,6 @@
 
             if (cand.resumeUrl) {
                 existingActions.classList.remove('hidden');
-                document.getElementById('resume-view-btn').href = cand.resumeUrl;
                 document.getElementById('resumeUrlHidden').value = cand.resumeUrl;
             } else {
                 existingActions.classList.add('hidden');
@@ -3994,8 +4172,8 @@
                     if (deptEl && job) {
                         deptEl.value = job.department || '';
                     }
-                    // repopulate the job select according to dept before setting value
-                    try { updateDropdowns(); } catch (e) { /* ignore */ }
+                    // repopulate the job select according to dept before setting value (include current jobId)
+                    try { updateDropdowns(cand.jobId); } catch (e) { /* ignore */ }
                     if (jobEl) {
                         jobEl.value = cand.jobId || '';
                         jobEl.dispatchEvent(new Event('change', { bubbles: true }));
@@ -4209,7 +4387,11 @@
 
         window.updateCandidateStage = async (id, stage) => {
             try {
-                await updateDoc(doc(db, "candidates", id), { stage });
+                const updateData = { stage };
+                if (stage === 'Hired') {
+                    updateData.hiredAt = serverTimestamp();
+                }
+                await updateDoc(doc(db, "candidates", id), updateData);
 
                 const cand = cachedCandidates.find(c => c.id === id);
                 if (cand && cand.jobId) {
@@ -4230,7 +4412,12 @@
                         const jobSnap = await getDoc(jobRef);
                         if (jobSnap.exists()) {
                             const jobData = jobSnap.data();
-                            if (jobData.status === 'Closed' || jobData.closingDate) {
+
+                            // ONLY re-open if the candidate was PREVIOUSLY Hired or Selected
+                            // and is now moving to a different stage.
+                            const wasHired = cand.stage === 'Selected' || cand.stage === 'Hired';
+
+                            if (wasHired && (jobData.status === 'Closed' || jobData.closingDate)) {
                                 // Before re-opening, check if any other candidates
                                 // are still Hired/Selected for this same job.
                                 const otherHired = cachedCandidates.some(c =>
@@ -4274,6 +4461,438 @@
             }
         };
 
+        // --- RESUME PREVIEWER LOGIC ---
+        window.previewResume = (url) => {
+            if (!url) return;
+            const modal = document.getElementById('modal-resume-preview');
+            const iframe = document.getElementById('resume-preview-iframe');
+            const loader = document.getElementById('resume-preview-loader');
+            const downloadLink = document.getElementById('resume-download-link');
+
+            if (!modal || !iframe) return;
+
+            // Show loader, hide iframe initially
+            if (loader) loader.classList.remove('hidden');
+            iframe.style.opacity = '0';
+
+            iframe.src = url;
+            if (downloadLink) downloadLink.href = url;
+
+            iframe.onload = () => {
+                if (loader) loader.classList.add('hidden');
+                iframe.style.opacity = '1';
+                iframe.style.transition = 'opacity 0.3s ease';
+            };
+
+            openModal('modal-resume-preview');
+        };
+
+        window.downloadResumeCurrent = async () => {
+            const iframe = document.getElementById('resume-preview-iframe');
+            const url = iframe ? iframe.src : null;
+            if (!url || url === 'about:blank') return;
+
+            const btn = document.getElementById('resume-download-btn-forced');
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Downloading...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(url);
+                const blob = await response.blob();
+                const blobUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = blobUrl;
+                // Try to extract filename from URL or use a default
+                const filename = url.split('/').pop().split('?')[0] || 'resume.pdf';
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(blobUrl);
+                document.body.removeChild(a);
+                showToast("Download Started!");
+            } catch (e) {
+                console.error("Download failed:", e);
+                // Fallback to opening in new tab if blob fetch fails
+                window.open(url, '_blank');
+            } finally {
+                btn.innerHTML = orig;
+                btn.disabled = false;
+            }
+        };
+
+        window.shareResumeCurrent = () => {
+            const iframe = document.getElementById('resume-preview-iframe');
+            const url = iframe ? iframe.src : null;
+            if (!url || url === 'about:blank') return;
+
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(() => {
+                    showToast("Link copied to clipboard!");
+                }).catch(err => {
+                    console.error('Link copy failed:', err);
+                });
+            } else {
+                // Fallback for older browsers
+                const textArea = document.createElement("textarea");
+                textArea.value = url;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showToast("Link copied!");
+            }
+        };
+
+        // ===================== ADVANCED REPORT BUILDER =====================
+        let advReportType = 'candidates';
+        let advReportItems = [];
+        let advReportSelectedIds = new Set();
+        let advReportFilters = {};
+
+        window.openAdvancedReport = (type) => {
+            advReportType = type;
+            advReportSelectedIds.clear();
+            advReportFilters = {};
+            const searchEl = document.getElementById('advanced-report-search');
+            if (searchEl) searchEl.value = '';
+
+            const selectAllEl = document.getElementById('advanced-report-select-all');
+            if (selectAllEl) selectAllEl.checked = false;
+
+            document.getElementById('advanced-report-title').innerText = type === 'candidates' ? 'Advanced Candidates Report' : 'Advanced Jobs Report';
+
+            renderAdvancedReportFilters();
+            applyAdvancedFilters(); // This will eventually call renderAdvancedReportItems
+
+            openModal('modal-advanced-report');
+        };
+
+        const renderAdvancedReportFilters = () => {
+            const container = document.getElementById('advanced-report-filters-container');
+            let html = '';
+
+            if (advReportType === 'candidates') {
+                // Get unique lists for candidates
+                const depts = [...new Set(cachedJobs.map(j => j.department).filter(Boolean))];
+                const stages = [...new Set(cachedCandidates.map(c => c.stage).filter(Boolean))];
+                const sources = [...new Set(cachedCandidates.map(c => c.source).filter(Boolean))];
+
+                html += createFilterDropdown('Job Department', 'dept', depts);
+                html += createFilterDropdown('Current Stage', 'stage', stages);
+                html += createFilterDropdown('Source', 'source', sources);
+
+                // Set Bottom Options
+                document.getElementById('advanced-report-options-container').innerHTML = `
+                    <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 font-medium whitespace-nowrap">
+                        <input type="checkbox" id="adv-opt-ctc" checked class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 bg-white border-gray-300 border"> Include Financials (CTC)
+                    </label>
+                    <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 font-medium whitespace-nowrap">
+                        <input type="checkbox" id="adv-opt-contact" checked class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 bg-white border-gray-300 border"> Include Contact Info
+                    </label>
+                `;
+            } else if (advReportType === 'jobs') {
+                const depts = [...new Set(cachedJobs.map(j => j.department).filter(Boolean))];
+                const statuses = ['Open', 'Closed'];
+
+                html += createFilterDropdown('Department', 'dept', depts);
+                html += createFilterDropdown('Status', 'status', statuses);
+
+                document.getElementById('advanced-report-options-container').innerHTML = `
+                    <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 font-medium whitespace-nowrap">
+                        <input type="checkbox" id="adv-opt-budget" checked class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 bg-white border-gray-300 border"> Include Budget Exp.
+                    </label>
+                `;
+            }
+
+            container.innerHTML = html;
+        };
+
+        const createFilterDropdown = (label, key, options) => {
+            let optsHtml = '<option value="">All</option>';
+            options.sort().forEach(opt => {
+                optsHtml += `<option value="${opt}">${opt}</option>`;
+            });
+            return `
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">${label}</label>
+                    <select id="adv-filter-${key}" onchange="applyAdvancedFilters()" class="w-full theme-input rounded-xl border border-slate-300 dark:border-slate-600 text-sm py-2 px-3 focus:ring-2 focus:ring-blue-500 transition-shadow bg-white dark:bg-slate-700">
+                        ${optsHtml}
+                    </select>
+                </div>
+            `;
+        };
+
+        window.clearAdvancedFilters = () => {
+            const selects = document.querySelectorAll('#advanced-report-filters-container select');
+            selects.forEach(s => s.value = '');
+            const searchEl = document.getElementById('advanced-report-search');
+            if (searchEl) searchEl.value = '';
+
+            advReportSelectedIds.clear();
+            const selectAllEl = document.getElementById('advanced-report-select-all');
+            if (selectAllEl) selectAllEl.checked = false;
+
+            applyAdvancedFilters(false);
+        };
+
+        window.applyAdvancedFilters = (autoSelect = true) => {
+            const searchElement = document.getElementById('advanced-report-search');
+            let search = '';
+            if (searchElement) {
+                search = searchElement.value.toLowerCase();
+            }
+            advReportFilters = {};
+
+            if (advReportType === 'candidates') {
+                const deptFilter = document.getElementById('adv-filter-dept')?.value;
+                const stageFilter = document.getElementById('adv-filter-stage')?.value;
+                const sourceFilter = document.getElementById('adv-filter-source')?.value;
+
+                advReportItems = cachedCandidates.filter(c => {
+                    const job = cachedJobs.find(j => j.id === c.jobId);
+                    if (deptFilter && (!job || job.department !== deptFilter)) return false;
+                    if (stageFilter && c.stage !== stageFilter) return false;
+                    if (sourceFilter && c.source !== sourceFilter) return false;
+
+                    if (search) {
+                        const searchStr = `${c.name} ${c.email} ${job?.title} ${c.stage} ${c.source}`.toLowerCase();
+                        if (!searchStr.includes(search)) return false;
+                    }
+                    return true;
+                });
+            } else if (advReportType === 'jobs') {
+                const deptFilter = document.getElementById('adv-filter-dept')?.value;
+                const statusFilter = document.getElementById('adv-filter-status')?.value;
+
+                advReportItems = cachedJobs.filter(j => {
+                    if (deptFilter && j.department !== deptFilter) return false;
+
+                    let computedStatus = j.status;
+                    if (!computedStatus) {
+                        const nowStr = new Date().toISOString().split('T')[0];
+                        computedStatus = (j.closingDate && j.closingDate <= nowStr) ? 'Closed' : 'Open';
+                    }
+
+                    if (statusFilter && computedStatus !== statusFilter) return false;
+
+                    if (search) {
+                        const searchStr = `${j.title} ${j.department} ${computedStatus}`.toLowerCase();
+                        if (!searchStr.includes(search)) return false;
+                    }
+                    return true;
+                });
+            }
+
+            if (autoSelect) {
+                // Sync selection: Add all filtered items to selection when applying filters
+                advReportSelectedIds.clear(); // Clear existing selections first
+                advReportItems.forEach(item => advReportSelectedIds.add(item.id)); // Select all filtered
+            } else {
+                // Remove ids that are no longer in the filtered list
+                const currentItemIds = new Set(advReportItems.map(i => i.id));
+                for (let id of advReportSelectedIds) {
+                    if (!currentItemIds.has(id)) advReportSelectedIds.delete(id);
+                }
+            }
+
+            renderAdvancedReportItems();
+        };
+
+        window.renderAdvancedReportItems = () => {
+            const container = document.getElementById('advanced-report-items-container');
+            const header = document.getElementById('advanced-report-table-header');
+
+            let html = '';
+
+            if (advReportType === 'candidates') {
+                header.innerHTML = `<div>Candidate Details</div><div>Applied Position</div>`;
+                advReportItems.forEach(c => {
+                    const job = cachedJobs.find(j => j.id === c.jobId);
+                    const isSelected = advReportSelectedIds.has(c.id);
+                    html += `
+                        <label class="flex items-center px-6 py-3 border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''}">
+                            <div class="w-12 flex justify-center">
+                                <input type="checkbox" onchange="toggleReportItemSelection('${c.id}', this.checked)" ${isSelected ? 'checked' : ''} class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 bg-white border border-gray-300">
+                            </div>
+                            <div class="flex-1 grid grid-cols-2 gap-4">
+                                <div>
+                                    <div class="font-semibold text-slate-800 dark:text-slate-200 text-sm whitespace-nowrap overflow-hidden text-ellipsis">${c.name || 'N/A'}</div>
+                                    <div class="text-xs text-slate-500 whitespace-nowrap overflow-hidden text-ellipsis">${c.email || 'N/A'} <span class="mx-1">•</span> <span class="font-medium text-blue-600">${c.stage || 'N/A'}</span></div>
+                                </div>
+                                <div>
+                                    <div class="text-sm text-slate-700 dark:text-slate-300 whitespace-nowrap overflow-hidden text-ellipsis">${job ? job.title : 'N/A'}</div>
+                                    <div class="text-xs text-slate-500 whitespace-nowrap overflow-hidden text-ellipsis">${job ? job.department : 'N/A'}</div>
+                                </div>
+                            </div>
+                        </label>
+                    `;
+                });
+            } else if (advReportType === 'jobs') {
+                header.innerHTML = `<div>Job Details</div><div>Status / Candidates</div>`;
+                advReportItems.forEach(j => {
+                    const isSelected = advReportSelectedIds.has(j.id);
+                    const candCount = cachedCandidates.filter(c => c.jobId === j.id).length;
+
+                    let computedStatus = j.status;
+                    if (!computedStatus) {
+                        const nowStr = new Date().toISOString().split('T')[0];
+                        computedStatus = (j.closingDate && j.closingDate <= nowStr) ? 'Closed' : 'Open';
+                    }
+
+                    html += `
+                        <label class="flex items-center px-6 py-3 border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''}">
+                            <div class="w-12 flex justify-center">
+                                <input type="checkbox" onchange="toggleReportItemSelection('${j.id}', this.checked)" ${isSelected ? 'checked' : ''} class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 bg-white border border-gray-300">
+                            </div>
+                            <div class="flex-1 grid grid-cols-2 gap-4">
+                                <div>
+                                    <div class="font-semibold text-slate-800 dark:text-slate-200 text-sm whitespace-nowrap overflow-hidden text-ellipsis">${j.title}</div>
+                                    <div class="text-xs text-slate-500 whitespace-nowrap overflow-hidden text-ellipsis">${j.department || 'N/A'}</div>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-bold ${computedStatus === 'Open' ? 'text-green-600' : 'text-slate-500'}">${computedStatus}</div>
+                                    <div class="text-xs text-slate-500">${candCount} Candidates Linked</div>
+                                </div>
+                            </div>
+                        </label>
+                    `;
+                });
+            }
+
+            if (advReportItems.length === 0) {
+                html = `<div class="p-12 text-center text-slate-500 dark:text-slate-400 italic flex flex-col items-center gap-3">
+                    <i class="fas fa-search text-3xl opacity-30"></i>
+                    <span>No items match your master filters.</span>
+                </div>`;
+            }
+
+            container.innerHTML = html;
+
+            document.getElementById('advanced-report-total-count').innerText = `Total Rows: ${advReportItems.length}`;
+            document.getElementById('advanced-report-selected-count').innerText = `Rows Selected: ${advReportSelectedIds.size}`;
+
+            const selectAllCheckbox = document.getElementById('advanced-report-select-all');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = advReportItems.length > 0 && advReportSelectedIds.size === advReportItems.length;
+            }
+        };
+
+        window.toggleAllReportSelection = (checked) => {
+            if (checked) {
+                advReportItems.forEach(item => advReportSelectedIds.add(item.id));
+            } else {
+                advReportSelectedIds.clear();
+            }
+            renderAdvancedReportItems();
+        };
+
+        window.toggleReportItemSelection = (id, checked) => {
+            if (checked) {
+                advReportSelectedIds.add(id);
+            } else {
+                advReportSelectedIds.delete(id);
+            }
+            renderAdvancedReportItems();
+        };
+
+        window.exportCustomReport = () => {
+            if (advReportSelectedIds.size === 0) {
+                alert("Please select at least one row from the right panel to export.");
+                return;
+            }
+
+            if (advReportType === 'candidates') {
+                const includeCTC = document.getElementById('adv-opt-ctc')?.checked;
+                const includeContact = document.getElementById('adv-opt-contact')?.checked;
+
+                const selectedCandidates = cachedCandidates.filter(c => advReportSelectedIds.has(c.id));
+                const data = selectedCandidates.map(c => {
+                    const job = cachedJobs.find(j => j.id === c.jobId);
+                    const company = job ? cachedCompanies.find(co => co.id === job.companyId) : null;
+
+                    let row = {
+                        "Candidate Name": c.name || "N/A",
+                        "Qualification": c.qualification || "N/A"
+                    };
+
+                    if (includeContact) {
+                        row["Email"] = c.email || "N/A";
+                        row["Phone"] = c.phone || "N/A";
+                        row["Address"] = c.address || "N/A";
+                    }
+
+                    row["Current Company"] = c.currentCompany || "N/A";
+                    row["Designation"] = c.designation || "N/A";
+                    row["Experience (Years)"] = c.experience || 0;
+                    row["Source"] = c.source || "N/A";
+                    row["Applied For (Job)"] = job ? job.title : "N/A";
+                    row["Department"] = job ? (job.department || "N/A") : "N/A";
+                    row["Company"] = company ? company.name : "N/A";
+
+                    if (includeCTC) {
+                        row["Budget CTC (Monthly ₹)"] = job ? +((job.budget) / 12).toFixed(2) : 0;
+                        row["Budget CTC Annual (LPA)"] = job ? +((job.budget) / 100000).toFixed(2) : 0;
+                        row["Current CTC (Monthly ₹)"] = c.currentCTC || 0;
+                        row["Current CTC Annual (LPA)"] = c.currentCTC ? +((c.currentCTC * 12) / 100000).toFixed(2) : 0;
+                        row["Expected CTC (Monthly ₹)"] = c.expectedCTC || 0;
+                        row["Expected CTC Annual (LPA)"] = c.expectedCTC ? +((c.expectedCTC * 12) / 100000).toFixed(2) : 0;
+                        row["Final / Offered CTC (Monthly ₹)"] = c.offeredCTC || "TBD";
+                        row["Final CTC Annual (LPA)"] = c.offeredCTC ? +((Number(c.offeredCTC) * 12) / 100000).toFixed(2) : "TBD";
+                        row["Difference (Monthly ₹)"] = (c.offeredCTC && job) ? +((Number(c.offeredCTC) - (job.budget / 12))).toFixed(2) : "TBD";
+                        row["Difference (Annual LPA)"] = (c.offeredCTC && job) ? +(((Number(c.offeredCTC) * 12) - job.budget) / 100000).toFixed(2) : "TBD";
+                    }
+
+                    row["Stage"] = c.stage || "N/A";
+                    row["Status"] = c.status || "N/A";
+                    row["Created Date"] = c.createdAt ? new Date(c.createdAt.seconds * 1000).toLocaleDateString() : "N/A";
+
+                    return row;
+                });
+                exportToExcel(data, "Custom_Candidates_Report");
+
+            } else if (advReportType === 'jobs') {
+                const includeBudget = document.getElementById('adv-opt-budget')?.checked;
+
+                const selectedJobs = cachedJobs.filter(j => advReportSelectedIds.has(j.id));
+                const data = selectedJobs.map(job => {
+                    const company = cachedCompanies.find(co => co.id === job.companyId);
+
+                    let computedStatus = job.status;
+                    if (!computedStatus) {
+                        const nowStr = new Date().toISOString().split('T')[0];
+                        computedStatus = (job.closingDate && job.closingDate <= nowStr) ? 'Closed' : 'Open';
+                    }
+
+                    let row = {
+                        "Job Title": job.title,
+                        "Department": job.department || "N/A",
+                        "Company": company ? company.name : "N/A",
+                        "Location": job.location || "N/A",
+                        "Job Type": job.type || "N/A",
+                        "Experience Needed": job.experience || "N/A",
+                        "Total Openings": job.openings || 1,
+                        "Hired Candidates": cachedCandidates.filter(c => c.jobId === job.id && (c.stage === 'Hired')).length,
+                        "Status": computedStatus
+                    };
+
+                    if (includeBudget) {
+                        row["Budget (Annual ₹)"] = job.budget || 0;
+                        row["Budget (Monthly ₹)"] = job.budget ? +(job.budget / 12).toFixed(2) : 0;
+                    }
+
+                    row["Created Date"] = job.createdAt ? new Date(job.createdAt.seconds * 1000).toLocaleDateString() : "N/A";
+                    row["Closing Date"] = job.closingDate || "N/A";
+
+                    return row;
+                });
+                exportToExcel(data, "Custom_Jobs_Report");
+            }
+
+            closeModal('modal-advanced-report');
+        };
+
         window.fetchCandidatesReport = () => {
             const data = cachedCandidates.map(c => {
                 const job = cachedJobs.find(j => j.id === c.jobId);
@@ -4295,12 +4914,16 @@
                     "Department": job ? (job.department || "N/A") : "N/A",
                     "Company": company ? company.name : "N/A",
                     // ── CTC & Financials (Monthly) ──
+                    "Budget CTC (Monthly ₹)": job ? +((job.budget) / 12).toFixed(2) : 0,
+                    "Budget CTC Annual (LPA)": job ? +((job.budget) / 100000).toFixed(2) : 0,
                     "Current CTC (Monthly ₹)": c.currentCTC || 0,
                     "Current CTC Annual (LPA)": c.currentCTC ? +((c.currentCTC * 12) / 100000).toFixed(2) : 0,
                     "Expected CTC (Monthly ₹)": c.expectedCTC || 0,
                     "Expected CTC Annual (LPA)": c.expectedCTC ? +((c.expectedCTC * 12) / 100000).toFixed(2) : 0,
                     "Final / Offered CTC (Monthly ₹)": c.offeredCTC || "TBD",
                     "Final CTC Annual (LPA)": c.offeredCTC ? +((Number(c.offeredCTC) * 12) / 100000).toFixed(2) : "TBD",
+                    "Difference (Monthly ₹)": (c.offeredCTC && job) ? +((Number(c.offeredCTC) - (job.budget / 12))).toFixed(2) : "TBD",
+                    "Difference (Annual LPA)": (c.offeredCTC && job) ? +(((Number(c.offeredCTC) * 12) - job.budget) / 100000).toFixed(2) : "TBD",
                     "Notice Period (Days)": c.noticePeriod || 0,
                     "Why Changing Job": c.whyChangeJob || "N/A",
                     // ── Status ──
@@ -4442,12 +5065,16 @@
         };
 
         // Helper to populate job select optionally filtered by department
-        window.populateCandidateJobs = function (department) {
+        window.populateCandidateJobs = function (department, includeJobId = null) {
             const jobSelect = document.getElementById('candidate-job-select');
             if (!jobSelect) return;
 
-            // Recalculate active jobs from fresh cached data
+            // Recalculate active (open) jobs from fresh cached data
             const activeJobsForDropdown = cachedJobs.filter(j => {
+                // If it's the specific job we need to include (even if closed), keep it
+                if (includeJobId && j.id === includeJobId) return true;
+
+                // Otherwise check if it's open (no closing date or closing date is in future)
                 if (!j.closingDate) return true;
                 const closeDate = new Date(j.closingDate);
                 closeDate.setHours(23, 59, 59, 999);
@@ -4496,7 +5123,7 @@
             try { initCustomSelects(); } catch (e) { console.warn('Sync failed in populateCandidateJobs', e); }
         }
 
-        function updateDropdowns() {
+        function updateDropdowns(includeCandidateJobId = null) {
             const companySelect = document.getElementById('job-company-select');
             const deptSelect = document.getElementById('candidate-job-dept-select');
             const searchList = document.getElementById('candidate-search-list');
@@ -4544,8 +5171,14 @@
                 // attach change handler once
                 if (!deptSelect.dataset.handler) {
                     deptSelect.addEventListener('change', () => {
+                        const currentCandId = document.getElementById('form-candidate-id').value;
+                        let candJobId = null;
+                        if (currentCandId) {
+                            const c = cachedCandidates.find(x => x.id === currentCandId);
+                            if (c) candJobId = c.jobId;
+                        }
                         // repopulate jobs filtered by department
-                        window.populateCandidateJobs(deptSelect.value);
+                        window.populateCandidateJobs(deptSelect.value, candJobId);
                     });
                     deptSelect.dataset.handler = '1';
                 }
@@ -4567,7 +5200,7 @@
 
             // initial populate for job select (respect dept filter if set)
             const deptVal = deptSelect ? deptSelect.value : '';
-            window.populateCandidateJobs(deptVal);
+            window.populateCandidateJobs(deptVal, includeCandidateJobId);
 
             if (searchList) {
                 searchList.innerHTML = '';
@@ -4828,6 +5461,26 @@
             }
         });
 
+        // Close dropdowns and active modals on Escape key
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                // Close profile menu if open
+                const menu = document.getElementById('profile-menu');
+                if (menu && menu.classList.contains('show')) {
+                    menu.classList.remove('show');
+                }
+
+                // Close any open modals
+                const openModals = document.querySelectorAll('.fixed.inset-0:not(.hidden)');
+                openModals.forEach(modal => {
+                    // Make sure it looks like a modal by checking if it has an ID, then attempt to close
+                    if (modal.id) {
+                        closeModal(modal.id);
+                    }
+                });
+            }
+        });
+
         // Re-bind logout buttons including the one in navbar
         const setupLogoutListeners = () => {
             const logoutBtns = ['btn-logout', 'nav-btn-logout'];
@@ -4906,7 +5559,11 @@
             t.innerText = msg;
             t.classList.remove('opacity-0', 'bg-slate-800');
             t.classList.add('opacity-100', 'bg-blue-600');
-            setTimeout(() => t.classList.add('opacity-0'), 3000);
+            // User requested 2-3 seconds
+            setTimeout(() => {
+                t.classList.add('opacity-0');
+                t.classList.remove('opacity-100');
+            }, 2500);
         }
 
         function showError(msg) {
