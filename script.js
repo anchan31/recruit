@@ -1033,7 +1033,7 @@ function renderCandidates() {
         const initials = (c.name || '').split(' ').map(s => s[0]).join('').substring(0, 2).toUpperCase();
 
         return `
-            < tr class="theme-tr transition group" >
+            <tr class="theme-tr transition group">
                         <td class="px-6 py-4">
                             <div class="font-medium flex items-center gap-3 text-slate-800 dark:text-white">
                                 <div class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-sm font-bold text-slate-700">${initials}</div>
@@ -1086,7 +1086,7 @@ function renderCandidates() {
                                 <button onclick="deleteDocById('candidates', '${c.id}')" class="p-2 text-slate-400 hover:text-red-500 dark:hover:text-red-400 bg-slate-100 dark:bg-slate-800/80 rounded shadow-sm" title="Delete Candidate"><i class="fas fa-trash-alt"></i></button>
                             </div>
                         </td>
-                        </tr >
+                        </tr>
             `;
     }).join('');
 
