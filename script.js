@@ -1765,7 +1765,7 @@ window.handleResumeSelection = (e) => {
     if (!file) return;
     pendingResumeFile = file;
     document.getElementById('resumeFileLabel').innerText = file.name.length > 20 ? file.name.substring(0, 20) + '...' : file.name;
-    document.getElementById('resume-upload-status').innerHTML = `< span class="text-amber-500" > <i class="fas fa-circle-notch fa-spin"></i> Ready to upload</span > `;
+    document.getElementById('resume-upload-status').innerHTML = `<span class="text-amber-500"><i class="fas fa-circle-notch fa-spin"></i> Ready to upload</span>`;
     document.getElementById('existing-resume-actions').classList.add('hidden'); // Hide existing actions if new file selected
 };
 
@@ -1828,7 +1828,7 @@ document.getElementById('form-candidate').onsubmit = async (e) => {
         // Upload resume if a new file was selected
         if (pendingResumeFile) {
             btn.innerText = "Uploading Resume...";
-            document.getElementById('resume-upload-status').innerHTML = `< span class="text-blue-500" > <i class="fas fa-spinner fa-spin"></i> Uploading...</span > `;
+            document.getElementById('resume-upload-status').innerHTML = `<span class="text-blue-500"><i class="fas fa-spinner fa-spin"></i> Uploading...</span>`;
 
             // Generate Custom Filename: Name + Dept + Date
             const cleanName = (data.name || 'Candidate').trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
@@ -1840,7 +1840,7 @@ document.getElementById('form-candidate').onsubmit = async (e) => {
 
             const resumeUrl = await uploadResumeToCloudinary(pendingResumeFile, customPublicId);
             data.resumeUrl = resumeUrl;
-            document.getElementById('resume-upload-status').innerHTML = `< span class="text-green-500" > <i class="fas fa-check-circle"></i> Uploaded!</span > `;
+            document.getElementById('resume-upload-status').innerHTML = `<span class="text-green-500"><i class="fas fa-check-circle"></i> Uploaded!</span>`;
             pendingResumeFile = null; // Clear pending
         }
 
