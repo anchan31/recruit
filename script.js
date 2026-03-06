@@ -1254,10 +1254,7 @@ function updateDashboard() {
     const hcEl = document.getElementById('stat-headcount');
     if (hcEl) hcEl.innerText = headcount;
 
-    // Open Offers (Selected stage + pending/sent status)
-    const openOffers = cachedCandidates.filter(c => c.stage === 'Selected' && (!c.offerStatus || c.offerStatus !== 'Signed')).length;
-    const ooEl = document.getElementById('stat-open-offers');
-    if (ooEl) ooEl.innerText = openOffers;
+    // Open Offers: now computed from cachedOffers below (after renderDashboardOffers call)
 
     // Selection Rate
     const selectedCount = cachedCandidates.filter(c => c.stage === 'Selected' || c.stage === 'Hired').length;
@@ -1441,9 +1438,115 @@ function updateDashboard() {
 
     renderUpcomingInterviews();
     renderDashboardTasks();
+    renderDashboardOffers();
+    renderHiringFunnel();
 
     // Refresh notification badge whenever data changes
     if (typeof refreshNotificationBadge === 'function') refreshNotificationBadge();
+
+    // ── New stats powered by cachedOffers ──
+    const pendingOffers = cachedOffers.filter(o => !o.status || o.status === 'Pending' || o.status === 'Sent');
+    const signedOffers = cachedOffers.filter(o => o.status === 'Signed' || o.status === 'Accepted');
+    const ooEl2 = document.getElementById('stat-open-offers');
+    if (ooEl2) ooEl2.innerText = pendingOffers.length;
+    const signedEl = document.getElementById('stat-offers-signed');
+    if (signedEl) signedEl.innerText = signedOffers.length;
+
+    // ── Avg Experience ──
+    const expValues = cachedCandidates.map(c => Number(c.experience || 0)).filter(v => v > 0);
+    const avgExp = expValues.length > 0 ? (expValues.reduce((a, b) => a + b, 0) / expValues.length).toFixed(1) : 0;
+    const aeEl = document.getElementById('stat-avg-exp');
+    if (aeEl) aeEl.innerText = avgExp;
+
+    // ── Overdue Tasks ──
+    const todayISO = new Date().toISOString().split('T')[0];
+    const overdueTasks = cachedTasks.filter(t => {
+        if ((t.status || 'todo').toLowerCase() === 'done') return false;
+        return t.dueDate && t.dueDate < todayISO;
+    }).length;
+    const otEl = document.getElementById('stat-overdue-tasks');
+    if (otEl) otEl.innerText = overdueTasks;
+}
+
+// ── Pending Offers sidebar widget ──
+function renderDashboardOffers() {
+    const container = document.getElementById('dashboard-offers-list');
+    const countEl = document.getElementById('pending-offers-count');
+    if (!container) return;
+
+    const pending = cachedOffers.filter(o => !o.status || o.status === 'Pending' || o.status === 'Sent');
+    if (countEl) countEl.innerText = pending.length;
+
+    if (pending.length === 0) {
+        container.innerHTML = `<div class="text-center py-6 text-slate-400">
+            <i class="fas fa-check-circle text-2xl mb-2 opacity-20"></i>
+            <p class="text-xs">No pending offers.</p>
+        </div>`;
+        return;
+    }
+
+    container.innerHTML = pending.slice(0, 5).map(o => {
+        const cand = cachedCandidates.find(c => c.id === o.candidateId);
+        const ctc = o.offeredCTC ? `₹${Number(o.offeredCTC).toLocaleString('en-IN')}/mo` : '';
+        return `<div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 cursor-pointer transition-colors" onclick="showSection('offers')">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                    ${(cand?.name || o.candidateName || '?')[0].toUpperCase()}
+                </div>
+                <div class="min-w-0">
+                    <p class="text-xs font-bold truncate">${cand?.name || o.candidateName || 'Unknown'}</p>
+                    ${ctc ? `<p class="text-[10px] text-emerald-600 font-semibold">${ctc}</p>` : ''}
+                </div>
+            </div>
+            <span class="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 flex-shrink-0">${o.status || 'Pending'}</span>
+        </div>`;
+    }).join('');
+    if (pending.length > 5) {
+        container.innerHTML += `<p class="text-[10px] text-center text-slate-400 font-semibold pt-1">+${pending.length - 5} more</p>`;
+    }
+}
+
+// ── Hiring Funnel widget ──
+function renderHiringFunnel() {
+    const container = document.getElementById('hiring-funnel-chart');
+    if (!container) return;
+
+    const funnelStages = [
+        { label: 'Applied', color: '#3b82f6' },
+        { label: 'Screening', color: '#8b5cf6' },
+        { label: 'Interview', color: '#f59e0b' },
+        { label: 'Selected', color: '#10b981' },
+        { label: 'Offer', color: '#06b6d4' },
+        { label: 'Hired', color: '#22c55e' },
+    ];
+
+    const counts = funnelStages.map(s => ({
+        ...s,
+        count: cachedCandidates.filter(c => c.stage === s.label).length
+    }));
+
+    // Also count stages that don't map 1:1
+    const screeningAliases = ['Screening', 'Phone Screen', 'HR Screen'];
+    const interviewAliases = ['Interview', 'L1 Interview', 'L2 Interview', 'Technical', 'Final Round'];
+    counts[1].count = cachedCandidates.filter(c => screeningAliases.includes(c.stage)).length;
+    counts[2].count = cachedCandidates.filter(c => interviewAliases.includes(c.stage)).length;
+
+    const maxCount = Math.max(...counts.map(s => s.count), 1);
+
+    container.innerHTML = counts.map(s => {
+        const pct = Math.round((s.count / maxCount) * 100);
+        const drop = s.count > 0 ? '' : 'opacity-40';
+        return `<div class="flex items-center gap-3 ${drop}">
+            <span class="text-[10px] font-bold text-slate-500 w-24 text-right flex-shrink-0">${s.label}</span>
+            <div class="flex-1 h-7 bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden">
+                <div class="h-full rounded-lg flex items-center px-2 transition-all duration-500"
+                     style="width:${pct || 2}%; background:${s.color};">
+                    ${s.count > 0 ? `<span class="text-[10px] font-bold text-white ml-auto">${s.count}</span>` : ''}
+                </div>
+            </div>
+            <span class="text-[10px] font-bold text-slate-400 w-6 flex-shrink-0">${pct}%</span>
+        </div>`;
+    }).join('');
 }
 
 function renderUpcomingInterviews() {

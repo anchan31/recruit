@@ -481,20 +481,30 @@
                 <div id="section-dashboard" class="space-y-8 animate-fade-in">
                     <!-- Quick Actions -->
                     <div
-                        class="flex flex-wrap gap-4 items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+                        class="flex flex-wrap gap-3 items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
                         <h3 class="text-xl font-bold">Quick Overview</h3>
-                        <button onclick="openAddTaskModal()"
-                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
-                            <i class="fas fa-tasks"></i> New Task
-                        </button>
-                        <button onclick="showSection('portalsettings')"
-                            class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
-                            <i class="fas fa-cog"></i> Portal Settings
-                        </button>
-                        <button onclick="openModal('modal-candidate')"
-                            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
-                            <i class="fas fa-plus"></i> Add Candidate
-                        </button>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="openModal('modal-candidate')"
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-2 shadow-sm shadow-blue-500/20">
+                                <i class="fas fa-user-plus"></i> Add Candidate
+                            </button>
+                            <button onclick="openAddInterviewModal()"
+                                class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-2 shadow-sm shadow-purple-500/20">
+                                <i class="fas fa-calendar-plus"></i> Schedule Interview
+                            </button>
+                            <button onclick="showSection('offers')"
+                                class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-2 shadow-sm shadow-emerald-500/20">
+                                <i class="fas fa-file-signature"></i> View Offers
+                            </button>
+                            <button onclick="openAddTaskModal()"
+                                class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-2 shadow-sm shadow-orange-500/20">
+                                <i class="fas fa-list-check"></i> New Task
+                            </button>
+                            <button onclick="showSection('portalsettings')"
+                                class="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-2">
+                                <i class="fas fa-cog"></i> Settings
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Primary Stats -->
@@ -582,15 +592,20 @@
                                 <div class="text-emerald-500"><i class="fas fa-sitemap text-xl"></i></div>
                             </div>
                         </div>
-                        <div
-                            class="glass-card p-6 rounded-2xl border-b-4 border-b-blue-600 hover:scale-[1.02] transition-transform">
+                        <div class="glass-card p-6 rounded-2xl border-b-4 border-b-blue-600 hover:scale-[1.02] transition-transform cursor-pointer"
+                            onclick="showSection('offers')">
                             <div class="flex justify-between items-start">
                                 <div>
-                                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Open Offers
-                                    </p>
+                                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Pending
+                                        Offers</p>
                                     <h3 class="text-3xl font-bold mt-2" id="stat-open-offers">0</h3>
+                                    <p class="text-[10px] text-slate-400 mt-1"><span id="stat-offers-signed"
+                                            class="text-emerald-500 font-bold">0</span> signed</p>
                                 </div>
-                                <div class="text-blue-600"><i class="fas fa-signature text-xl"></i></div>
+                                <div
+                                    class="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl text-blue-600 dark:text-blue-400">
+                                    <i class="fas fa-file-signature text-xl"></i>
+                                </div>
                             </div>
                         </div>
                         <div
@@ -601,13 +616,14 @@
                                         Rate</p>
                                     <h3 class="text-3xl font-bold mt-2" id="stat-selection-rate">0%</h3>
                                 </div>
-                                <div class="text-rose-500"><i class="fas fa-chart-pie text-xl"></i></div>
+                                <div class="p-3 bg-rose-100 dark:bg-rose-900/30 rounded-xl text-rose-500"><i
+                                        class="fas fa-chart-pie"></i></div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Secondary Insights Row -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                         <div
                             class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800">
                             <p class="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Budget Adherence
@@ -616,23 +632,32 @@
                         </div>
                         <div
                             class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800">
-                            <p class="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Median Exp. CTC
-                                (LPA)
+                            <p class="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Median CTC (LPA)
                             </p>
                             <p class="text-xl font-bold mt-1" id="stat-median-ctc">₹0</p>
                         </div>
                         <div
                             class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800">
-                            <p class="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Hires (This Month)
+                            <p class="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Hires This Month
                             </p>
                             <p class="text-xl font-bold mt-1 text-green-500" id="stat-monthly-hires">0</p>
                         </div>
                         <div
                             class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800">
-                            <p class="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Offer to Join
-                                Ratio
+                            <p class="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Offer→Join Ratio
                             </p>
                             <p class="text-xl font-bold mt-1 text-indigo-500" id="stat-join-ratio">0%</p>
+                        </div>
+                        <div
+                            class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800">
+                            <p class="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Avg. Exp. (Yrs)
+                            </p>
+                            <p class="text-xl font-bold mt-1 text-purple-500" id="stat-avg-exp">0</p>
+                        </div>
+                        <div
+                            class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800">
+                            <p class="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Overdue Tasks</p>
+                            <p class="text-xl font-bold mt-1 text-red-500" id="stat-overdue-tasks">0</p>
                         </div>
                     </div>
 
@@ -656,6 +681,14 @@
                                         <canvas id="sourceChart"></canvas>
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- Hiring Funnel -->
+                            <div class="glass-card p-6 rounded-2xl">
+                                <h4 class="text-lg font-bold mb-4 flex items-center gap-2">
+                                    <i class="fas fa-filter text-indigo-500"></i> Hiring Funnel
+                                </h4>
+                                <div id="hiring-funnel-chart" class="space-y-2"></div>
                             </div>
 
                             <div class="glass-card p-6 rounded-2xl">
@@ -688,34 +721,56 @@
                             </div>
                         </div>
 
-                        <!-- Sidebar Column: Upcoming Interviews -->
+                        <!-- Sidebar Column -->
                         <div class="space-y-6">
-                            <div class="glass-card p-6 rounded-2xl h-full flex flex-col">
-                                <h4 class="text-lg font-bold mb-6 flex items-center justify-between">
+                            <!-- Upcoming Interviews -->
+                            <div class="glass-card p-6 rounded-2xl flex flex-col">
+                                <h4 class="text-base font-bold mb-4 flex items-center justify-between">
                                     <div class="flex items-center gap-2">
-                                        <i class="fas fa-clock text-orange-500"></i>
-                                        Upcoming Interviews
+                                        <i class="fas fa-clock text-orange-500"></i> Upcoming Interviews
                                     </div>
-                                    <div class="flex items-center gap-3">
+                                    <div class="flex items-center gap-2">
                                         <button onclick="openAddInterviewModal()"
-                                            class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition p-1"
+                                            class="text-blue-600 hover:text-blue-700 transition p-1"
                                             title="Schedule Interview">
-                                            <i class="fas fa-plus-circle text-lg"></i>
+                                            <i class="fas fa-plus-circle"></i>
                                         </button>
                                         <span
-                                            class="text-[10px] px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold"
-                                            id="upcoming-count">0 Scheduled</span>
+                                            class="text-[10px] px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 font-bold"
+                                            id="upcoming-count">0</span>
                                     </div>
                                 </h4>
-                                <div class="space-y-4 flex-1" id="dashboard-interviews-list">
-                                    <!-- Upcoming interviews injected here -->
-                                    <div class="text-center py-12 text-slate-400">
+                                <div class="space-y-3 flex-1" id="dashboard-interviews-list">
+                                    <div class="text-center py-8 text-slate-400">
+                                        <i class="fas fa-calendar-xmark text-2xl mb-2 opacity-20"></i>
                                         <p class="text-sm">No interviews scheduled soon.</p>
                                     </div>
                                 </div>
                                 <button onclick="showSection('interviews')"
-                                    class="w-full mt-6 py-3 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                                    View Full Calendar
+                                    class="w-full mt-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                                    View All Interviews
+                                </button>
+                            </div>
+
+                            <!-- Pending Offers Widget -->
+                            <div class="glass-card p-6 rounded-2xl">
+                                <h4 class="text-base font-bold mb-4 flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-file-signature text-emerald-500"></i> Pending Offers
+                                    </div>
+                                    <span
+                                        class="text-[10px] px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 font-bold"
+                                        id="pending-offers-count">0</span>
+                                </h4>
+                                <div class="space-y-2" id="dashboard-offers-list">
+                                    <div class="text-center py-6 text-slate-400">
+                                        <i class="fas fa-check-circle text-2xl mb-2 opacity-20"></i>
+                                        <p class="text-xs">No pending offers.</p>
+                                    </div>
+                                </div>
+                                <button onclick="showSection('offers')"
+                                    class="w-full mt-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                                    Manage Offers
                                 </button>
                             </div>
                         </div>
