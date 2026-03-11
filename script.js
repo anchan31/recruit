@@ -2,9 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import {
     getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import {
-    getFirestore, collection, addDoc, setDoc, updateDoc, deleteDoc, doc, getDocs, getDoc, query, where, orderBy, onSnapshot, serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, getDoc, doc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, setDoc, query, where, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // --- FIREBASE CONFIG ---
 const firebaseConfig = {
@@ -27,10 +25,11 @@ let currentUser = null;
 let cachedCompanies = [];
 let cachedJobs = [];
 let cachedCandidates = [];
-let cachedOffers = [];
 let cachedInterviews = [];
-let cachedWaTemplates = [];
-let cachedTasks = [];
+let cachedOffers = []; // added back
+let cachedWaTemplates = []; // added back
+let cachedTasks = []; // added back
+let cachedTalentPool = [];
 let whatsappSelectedCandidates = new Set();
 let globalSearchQuery = '';
 let candidateView = 'table'; // 'table' or 'cards'
@@ -443,6 +442,16 @@ function setupRealtimeListeners() {
         if (typeof updateTalentPoolBadge === 'function') updateTalentPoolBadge();
     });
 
+    // Listen for Talent Pool
+    const talentPoolQuery = collection(db, "talentpool");
+    onSnapshot(talentPoolQuery, (snapshot) => {
+        cachedTalentPool = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (typeof renderTalentPool === 'function') renderTalentPool();
+        if (typeof updateTalentPoolBadge === 'function') updateTalentPoolBadge();
+        if (typeof renderInboxCandidates === 'function' && currentInboxJobId) renderInboxCandidates();
+        updateDashboard();
+    });
+
     // Listen for Interviews
     const interviewQuery = collection(db, "interviews");
     onSnapshot(interviewQuery, (snapshot) => {
@@ -809,61 +818,72 @@ function renderJobs() {
         const toggleClass = j.status === 'Open' ? 'hover:text-orange-500 text-slate-400' : 'hover:text-emerald-500 text-slate-400';
 
         return `
-                <div class="glass-card p-6 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-blue-500/50 transition-all group relative overflow-hidden ${j.status === 'Closed' ? 'opacity-80' : ''}">
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="text-[10px] font-bold uppercase tracking-widest ${pColor} px-2 py-0.5 rounded-full">${j.priority || 'Medium'}</span>
-                                <span class="text-[10px] font-bold uppercase tracking-widest ${sColor} px-2 py-0.5 rounded-full">${j.status || 'Open'}</span>
+                <div class="glass-card p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-blue-500/50 transition-all group overflow-hidden ${j.status === 'Closed' ? 'opacity-80' : ''}">
+                    
+                    <div class="flex flex-col lg:flex-row gap-4 lg:items-center">
+                        
+                        <!-- Left: Job Info -->
+                        <div class="flex-[2] min-w-0 pr-2 lg:pr-0">
+                            <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                                <span class="text-[9px] font-bold uppercase tracking-widest ${pColor} px-2 py-0.5 rounded-full">${j.priority || 'Medium'}</span>
+                                <span class="text-[9px] font-bold uppercase tracking-widest ${sColor} px-2 py-0.5 rounded-full">${j.status || 'Open'}</span>
+                                
+                                <!-- Hover Actions -->
+                                <div class="ml-auto flex gap-1 lg:opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onclick="toggleJobStatus('${j.id}', '${j.status}')" class="p-1.5 flex items-center justify-center ${toggleClass} rounded bg-slate-50 dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition" title="${toggleTitle}">${toggleIcon}</button>
+                                    <button onclick="showJobDetails('${j.id}')" class="p-1.5 flex items-center justify-center text-slate-400 hover:text-blue-500 rounded bg-slate-50 dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition" title="View Details"><i class="fas fa-info-circle text-xs"></i></button>
+                                    <button onclick="editJob('${j.id}')" class="p-1.5 flex items-center justify-center text-slate-400 hover:text-blue-500 rounded bg-slate-50 dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition" title="Edit Job"><i class="fas fa-edit text-xs"></i></button>
+                                    <button onclick="deleteDocById('jobs', '${j.id}')" class="p-1.5 flex items-center justify-center text-slate-400 hover:text-red-500 rounded bg-slate-50 dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-900/30 transition" title="Delete Job"><i class="fas fa-trash text-xs"></i></button>
+                                </div>
                             </div>
-                            <h4 class="text-xl font-bold text-slate-800 dark:text-white truncate pr-20">${highlight(j.title, q)}</h4>
-                            <p class="text-sm text-blue-500 font-medium">${highlight(company ? company.name : 'Unknown Company', q)}</p>
+                            <h4 class="text-lg font-bold text-slate-800 dark:text-white truncate" title="${j.title}">${highlight(j.title, q)}</h4>
+                            <p class="text-xs text-blue-500 font-medium truncate mb-2">${highlight(company ? company.name : 'Unknown Company', q)}</p>
+                            
+                            <div class="flex items-center gap-4 text-[11px] text-slate-500 flex-wrap">
+                                <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/50 px-2 py-1 rounded-md">
+                                    <i class="fas fa-layer-group text-slate-400"></i>
+                                    <span class="truncate">${j.department || 'N/A'}</span>
+                                </div>
+                                <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/50 px-2 py-1 rounded-md">
+                                    <i class="fas fa-indian-rupee-sign text-slate-400"></i>
+                                    <span>₹${j.budget ? (j.budget / 100000).toFixed(1) + 'L' : 'N/A'} <span class="text-[10px] text-blue-500 font-semibold ml-1">${j.budget ? '(₹' + Math.round(j.budget / 12).toLocaleString() + '/mo)' : ''}</span></span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onclick="toggleJobStatus('${j.id}', '${j.status}')" class="p-2 ${toggleClass} rounded-lg bg-slate-50 dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700" title="${toggleTitle}">${toggleIcon}</button>
-                            <button onclick="showJobDetails('${j.id}')" class="p-2 text-slate-400 hover:text-blue-500 rounded-lg bg-slate-50 dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700" title="View Details"><i class="fas fa-info-circle"></i></button>
-                            <button onclick="editJob('${j.id}')" class="p-2 text-slate-400 hover:text-blue-500 rounded-lg bg-slate-50 dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700" title="Edit Job"><i class="fas fa-edit"></i></button>
-                            <button onclick="deleteDocById('jobs', '${j.id}')" class="p-2 text-slate-400 hover:text-red-500 rounded-lg bg-slate-50 dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700" title="Delete Job"><i class="fas fa-trash"></i></button>
-                        </div>
-                    </div>
 
-                    <div class="grid grid-cols-2 gap-4 mb-6">
-                        <div class="flex items-center gap-2 text-xs text-slate-500">
-                            <i class="fas fa-layer-group"></i>
-                            <span class="truncate">${j.department || 'N/A'}</span>
+                        <!-- Middle: Stats Pipeline -->
+                        <div class="flex-1 bg-slate-50 dark:bg-slate-900/40 rounded-xl p-3 border border-slate-100 dark:border-slate-800/50">
+                            <p class="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-2 text-center">Pipeline</p>
+                            <div class="flex justify-between items-center text-center px-2">
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-bold text-slate-800 dark:text-white">${stats.total}</span>
+                                    <span class="text-[8px] uppercase font-semibold text-slate-500">Total</span>
+                                </div>
+                                <div class="w-px h-6 bg-slate-200 dark:bg-slate-700"></div>
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-bold text-blue-500">${stats.active}</span>
+                                    <span class="text-[8px] uppercase font-semibold text-slate-500">Active</span>
+                                </div>
+                                <div class="w-px h-6 bg-slate-200 dark:bg-slate-700"></div>
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-bold text-emerald-500">${stats.hired}</span>
+                                    <span class="text-[8px] uppercase font-semibold text-slate-500">Hired</span>
+                                </div>
+                                <div class="w-px h-6 bg-slate-200 dark:bg-slate-700"></div>
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-bold text-blue-600">${cachedTalentPool.filter(c => c.jobId === j.id).length}</span>
+                                    <span class="text-[8px] uppercase font-semibold text-blue-500">New</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-2 text-xs text-slate-500">
-                            <i class="fas fa-indian-rupee-sign"></i>
-                            <span>₹${j.budget ? (j.budget / 100000).toFixed(1) + 'L' : 'N/A'} <span class="text-[9px] text-blue-500 font-semibold ml-1">${j.budget ? '(₹' + Math.round(j.budget / 12).toLocaleString() + '/mo)' : ''}</span></span>
-                        </div>
-                    </div>
 
-                    <div class="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-4 mb-6 border border-slate-100 dark:border-slate-800/50">
-                        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Pipeline Overview</p>
-                        <div class="grid grid-cols-4 gap-2 text-center">
-                            <div>
-                                <p class="text-lg font-bold text-slate-800 dark:text-white">${stats.total}</p>
-                                <p class="text-[9px] uppercase font-semibold text-slate-500">Total</p>
-                            </div>
-                            <div class="border-x border-slate-200 dark:border-slate-700">
-                                <p class="text-lg font-bold text-blue-500">${stats.active}</p>
-                                <p class="text-[9px] uppercase font-semibold text-slate-500">Active</p>
-                            </div>
-                            <div class="border-r border-slate-200 dark:border-slate-700">
-                                <p class="text-lg font-bold text-emerald-500">${stats.hired}</p>
-                                <p class="text-[9px] uppercase font-semibold text-slate-500">Hired</p>
-                            </div>
-                             <div>
-                                <p class="text-lg font-bold text-blue-600">${candidatesForJob.filter(c => c.inTalentPool).length}</p>
-                                <p class="text-[9px] uppercase font-semibold text-blue-500">Responses</p>
-                            </div>
+                        <!-- Right: Actions -->
+                        <div class="flex lg:flex-col justify-center gap-2 mt-4 lg:mt-0 lg:w-40 shrink-0">
+                            <button onclick="addCandidateForJob('${j.id}', '${j.department || ''}')" class="flex-1 py-1.5 px-3 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-300 flex items-center justify-center gap-1.5"><i class="fas fa-user-plus"></i> Add</button>
+                            <button onclick="viewJobInbox('${j.id}')" class="flex-1 py-1.5 px-3 rounded-md bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 text-[11px] font-bold hover:bg-emerald-100 dark:hover:bg-emerald-800/40 transition-colors flex items-center justify-center gap-1.5"><i class="fas fa-inbox"></i> Inbox</button>
+                            <button onclick="viewJobPipeline(this)" data-jobid="${j.id}" data-jobtitle="${j.title}" class="flex-1 py-1.5 px-3 rounded-md bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 text-[11px] font-bold hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors flex items-center justify-center gap-1.5"><i class="fas fa-route"></i> Pipeline</button>
                         </div>
-                    </div>
 
-                    <div class="flex gap-2">
-                        <button onclick="addCandidateForJob('${j.id}', '${j.department || ''}')" class="flex-1 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-300">Add Candidate</button>
-                        <button onclick="viewJobInbox('${j.id}')" class="flex-1 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-colors shadow-sm">Manage Responses</button>
-                        <button onclick="viewJobPipeline(this)" data-jobid="${j.id}" data-jobtitle="${j.title}" class="flex-1 py-2 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm">View Pipeline</button>
                     </div>
                 </div>
             `;
@@ -4738,7 +4758,7 @@ window.renderTalentPool = () => {
     const searchTerm = document.getElementById('talentpool-search')?.value.toLowerCase() || '';
     const statusFilter = document.getElementById('talentpool-filter-status')?.value || 'all';
 
-    const candidates = cachedCandidates.filter(c => c.inTalentPool === true);
+    const candidates = cachedTalentPool;
 
     // Filter jobs by search and status
     let jobs = cachedJobs;
@@ -4872,14 +4892,16 @@ window.renderInboxCandidates = () => {
     if (!listContainer || !currentInboxJobId) return;
 
     const job = cachedJobs.find(j => j.id === currentInboxJobId);
-    let candidates = cachedCandidates.filter(c => c.jobId === currentInboxJobId);
+    let candidates = cachedTalentPool.filter(c => c.jobId === currentInboxJobId);
+    let shortlisted = cachedCandidates.filter(c => c.jobId === currentInboxJobId && c.stage !== 'REJECTED');
+    let rejected = cachedCandidates.filter(c => c.jobId === currentInboxJobId && c.stage === 'REJECTED');
     const searchTerm = document.getElementById('inbox-search')?.value.toLowerCase() || '';
 
     // Apply Folder Filter
-    if (currentInboxFilter === 'all') candidates = candidates.filter(c => c.inTalentPool);
-    else if (currentInboxFilter === 'new') candidates = candidates.filter(c => c.inTalentPool && c.isNew);
-    else if (currentInboxFilter === 'shortlisted') candidates = candidates.filter(c => !c.inTalentPool && c.stage !== 'REJECTED');
-    else if (currentInboxFilter === 'rejected') candidates = candidates.filter(c => c.stage === 'REJECTED');
+    if (currentInboxFilter === 'all') candidates = candidates; // now just refers to talentpool candidates
+    else if (currentInboxFilter === 'new') candidates = candidates.filter(c => c.isNew);
+    else if (currentInboxFilter === 'shortlisted') candidates = shortlisted;
+    else if (currentInboxFilter === 'rejected') candidates = rejected;
 
     // Apply Search Filter
     if (searchTerm) {
@@ -4894,9 +4916,9 @@ window.renderInboxCandidates = () => {
     currentInboxQueue = candidates; // Store for navigation
 
     // Update Counts (Counts should reflect folder size without search filter for context)
-    document.getElementById('count-all').innerText = cachedCandidates.filter(c => c.jobId === currentInboxJobId && c.inTalentPool).length;
-    document.getElementById('count-new').innerText = cachedCandidates.filter(c => c.jobId === currentInboxJobId && c.inTalentPool && c.isNew).length;
-    document.getElementById('count-shortlisted').innerText = cachedCandidates.filter(c => c.jobId === currentInboxJobId && !c.inTalentPool && c.stage !== 'REJECTED').length;
+    document.getElementById('count-all').innerText = cachedTalentPool.filter(c => c.jobId === currentInboxJobId).length;
+    document.getElementById('count-new').innerText = cachedTalentPool.filter(c => c.jobId === currentInboxJobId && c.isNew).length;
+    document.getElementById('count-shortlisted').innerText = cachedCandidates.filter(c => c.jobId === currentInboxJobId && c.stage !== 'REJECTED').length;
     document.getElementById('count-rejected').innerText = cachedCandidates.filter(c => c.jobId === currentInboxJobId && c.stage === 'REJECTED').length;
 
     if (candidates.length === 0) {
@@ -4980,18 +5002,47 @@ window.renderInboxCandidates = () => {
 };
 
 window.moveToPipeline = async (candId) => {
-    const c = cachedCandidates.find(x => x.id === candId);
+    // Both shortlisted and rejected might be in candId. If it's a new or talent pool candidate
+    // we need to move it. If it's already in candidates, we just update it.
+    let isTalentPool = true;
+    let c = cachedTalentPool.find(x => x.id === candId);
+
+    if (!c) {
+        c = cachedCandidates.find(x => x.id === candId);
+        isTalentPool = false;
+    }
+
     if (!c) return;
 
     try {
-        const docRef = doc(db, 'candidates', candId);
-        await updateDoc(docRef, {
-            inTalentPool: false,
-            isNew: false,
-            stage: 'Screening',
-            updatedAt: serverTimestamp()
-        });
-        showToast(`Candidate ${c.name} moved to Screening pipeline.`);
+        if (isTalentPool) {
+            // Move from talentpool to candidates
+            const destData = { ...c };
+            delete destData.id; // don't carry the raw ID over to fields
+
+            destData.inTalentPool = false; // legacy flag kept for safety
+            destData.isNew = false;
+            destData.stage = 'Screening';
+            destData.updatedAt = serverTimestamp();
+
+            // Add to Candidates
+            await addDoc(collection(db, 'candidates'), destData);
+
+            // Remove from Talent Pool
+            await deleteDoc(doc(db, 'talentpool', candId));
+
+            showToast(`Candidate ${c.name} moved to Screening pipeline.`);
+        } else {
+            // Already in candidates (maybe from rejected folder being shortlisted again)
+            const docRef = doc(db, 'candidates', candId);
+            await updateDoc(docRef, {
+                inTalentPool: false,
+                isNew: false,
+                stage: 'Screening',
+                updatedAt: serverTimestamp()
+            });
+            showToast(`Candidate ${c.name} moved to Screening pipeline.`);
+        }
         // local update will happen via onSnapshot
     } catch (error) {
         console.error("Error moving to pipeline:", error);
@@ -5004,16 +5055,65 @@ window.bulkInboxAction = async (action) => {
     if (selected.length === 0) return;
 
     const isShortlist = action === 'shortlist';
-    const updates = {
-        inTalentPool: isShortlist ? false : true,
-        isNew: false,
-        stage: isShortlist ? 'Screening' : 'Rejected',
-        updatedAt: serverTimestamp()
-    };
 
     try {
         showToast(`Processing ${selected.length} candidates...`);
-        const promises = selected.map(id => updateDoc(doc(db, 'candidates', id), updates));
+
+        const promises = selected.map(async (id) => {
+            let isTalentPool = true;
+            let c = cachedTalentPool.find(x => x.id === id);
+
+            if (!c) {
+                c = cachedCandidates.find(x => x.id === id);
+                isTalentPool = false;
+            }
+
+            if (!c) return Promise.resolve();
+
+            if (isShortlist) {
+                if (isTalentPool) {
+                    const destData = { ...c };
+                    delete destData.id;
+                    destData.inTalentPool = false;
+                    destData.isNew = false;
+                    destData.stage = 'Screening';
+                    destData.updatedAt = serverTimestamp();
+
+                    await addDoc(collection(db, 'candidates'), destData);
+                    return deleteDoc(doc(db, 'talentpool', id));
+                } else {
+                    return updateDoc(doc(db, 'candidates', id), {
+                        inTalentPool: false,
+                        isNew: false,
+                        stage: 'Screening',
+                        updatedAt: serverTimestamp()
+                    });
+                }
+            } else {
+                // REJECT ACTION
+                // If rejecting from Talent Pool, we keep them in Talent pool but change stage, OR move to candidates as REJECTED. 
+                // Let's move them to candidates as REJECTED to keep Talent Pool clean.
+                if (isTalentPool) {
+                    const destData = { ...c };
+                    delete destData.id;
+                    destData.inTalentPool = false;
+                    destData.isNew = false;
+                    destData.stage = 'REJECTED';
+                    destData.updatedAt = serverTimestamp();
+
+                    await addDoc(collection(db, 'candidates'), destData);
+                    return deleteDoc(doc(db, 'talentpool', id));
+                } else {
+                    return updateDoc(doc(db, 'candidates', id), {
+                        inTalentPool: false,
+                        isNew: false,
+                        stage: 'REJECTED',
+                        updatedAt: serverTimestamp()
+                    });
+                }
+            }
+        });
+
         await Promise.all(promises);
         showToast(`Bulk ${isShortlist ? 'shortlisted' : 'rejected'} ${selected.length} candidates.`);
         toggleBulkBar();
@@ -5065,8 +5165,8 @@ window.addCandidateTag = async (id, tag) => {
 };
 
 window.updateTalentPoolBadge = () => {
-    if (!cachedCandidates) return;
-    const newCount = cachedCandidates.filter(c => c.inTalentPool && c.isNew).length;
+    if (!cachedTalentPool) return;
+    const newCount = cachedTalentPool.filter(c => c.isNew).length;
     const badge = document.getElementById('talent-pool-badge');
     if (badge) {
         if (newCount > 0) {

@@ -683,13 +683,7 @@
                                 </div>
                             </div>
 
-                            <!-- Hiring Funnel -->
-                            <div class="glass-card p-6 rounded-2xl">
-                                <h4 class="text-lg font-bold mb-4 flex items-center gap-2">
-                                    <i class="fas fa-filter text-indigo-500"></i> Hiring Funnel
-                                </h4>
-                                <div id="hiring-funnel-chart" class="space-y-2"></div>
-                            </div>
+
 
                             <div class="glass-card p-6 rounded-2xl">
                                 <h4 class="text-lg font-bold mb-4 flex items-center gap-2">
@@ -700,25 +694,7 @@
                                 </div>
                             </div>
 
-                            <!-- Dashboard Tasks Widget -->
-                            <div class="glass-card p-6 rounded-2xl">
-                                <h4 class="text-lg font-bold mb-6 flex items-center justify-between">
-                                    <div class="flex items-center gap-2">
-                                        <i class="fas fa-list-check text-blue-500"></i>
-                                        Recent HR Tasks
-                                    </div>
-                                    <button onclick="openAddTaskModal()" class="text-blue-600 hover:text-blue-700 p-1">
-                                        <i class="fas fa-plus-circle text-lg"></i>
-                                    </button>
-                                </h4>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="dashboard-tasks-list">
-                                    <!-- Tasks injected here -->
-                                </div>
-                                <button onclick="showSection('tasks')"
-                                    class="w-full mt-6 py-2 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                                    Go to Task Board
-                                </button>
-                            </div>
+
                         </div>
 
                         <!-- Sidebar Column -->
@@ -773,6 +749,34 @@
                                     Manage Offers
                                 </button>
                             </div>
+
+                            <!-- Hiring Funnel -->
+                            <div class="glass-card p-6 rounded-2xl">
+                                <h4 class="text-lg font-bold mb-4 flex items-center gap-2">
+                                    <i class="fas fa-filter text-indigo-500"></i> Hiring Funnel
+                                </h4>
+                                <div id="hiring-funnel-chart" class="space-y-2 flex flex-col gap-2"></div>
+                            </div>
+
+                            <!-- Dashboard Tasks Widget -->
+                            <div class="glass-card p-6 rounded-2xl">
+                                <h4 class="text-lg font-bold mb-6 flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-list-check text-blue-500"></i>
+                                        Recent HR Tasks
+                                    </div>
+                                    <button onclick="openAddTaskModal()" class="text-blue-600 hover:text-blue-700 p-1">
+                                        <i class="fas fa-plus-circle text-lg"></i>
+                                    </button>
+                                </h4>
+                                <div class="flex flex-col gap-3" id="dashboard-tasks-list">
+                                    <!-- Tasks injected here -->
+                                </div>
+                                <button onclick="showSection('tasks')"
+                                    class="w-full mt-6 py-2 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                                    Go to Task Board
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -824,7 +828,7 @@
                             </button>
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="jobs-list">
+                    <div class="flex flex-col gap-4" id="jobs-list">
                         <!-- Jobs injected here -->
                     </div>
                 </div>

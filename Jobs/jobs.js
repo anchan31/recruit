@@ -1056,8 +1056,8 @@ form.addEventListener('submit', async (e) => {
             updatedAt: serverTimestamp()
         };
 
-        // Save to Firestore
-        await addDoc(collection(db, 'candidates'), candidateData);
+        // Save to Firestore (Talent Pool Inbox)
+        await addDoc(collection(db, 'talentpool'), candidateData);
 
         // Show Success Message
         formContainer.classList.add('hidden');
