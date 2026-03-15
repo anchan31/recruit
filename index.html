@@ -1225,12 +1225,53 @@
                 </div>
 
                 <!-- OFFERS VIEW -->
-                <div id="section-offers" class="hidden space-y-6">
-                    <div class="flex justify-between items-center">
-                        <h3 class="text-2xl font-bold">Offer Management</h3>
+                <!-- OFFERS VIEW -->
+                <div id="section-offers" class="hidden space-y-8 animate-fade-up">
+                    <!-- Header -->
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div>
+                            <h3 class="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">Offer Management</h3>
+                            <p class="text-slate-500 dark:text-slate-400 font-medium text-sm mt-1">Track and manage the final lifecycle of candidate selection.</p>
+                        </div>
                     </div>
+
+                    <!-- Summary Stats Row -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="glass-card p-4 rounded-2xl border-l-4 border-blue-500">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Offers</p>
+                            <h4 class="text-2xl font-black text-slate-800 dark:text-white mt-1" id="offer-stat-total">0</h4>
+                        </div>
+                        <div class="glass-card p-4 rounded-2xl border-l-4 border-orange-400">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pending Prep</p>
+                            <h4 class="text-2xl font-black text-orange-500 mt-1" id="offer-stat-pending">0</h4>
+                        </div>
+                        <div class="glass-card p-4 rounded-2xl border-l-4 border-indigo-500">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sent to Candidate</p>
+                            <h4 class="text-2xl font-black text-indigo-500 mt-1" id="offer-stat-sent">0</h4>
+                        </div>
+                        <div class="glass-card p-4 rounded-2xl border-l-4 border-emerald-500">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Electronically Signed</p>
+                            <h4 class="text-2xl font-black text-emerald-500 mt-1" id="offer-stat-signed">0</h4>
+                        </div>
+                    </div>
+
+                    <!-- Controls Layer -->
+                    <div class="flex flex-col md:flex-row gap-4 items-center justify-between bg-white/50 dark:bg-slate-900/50 p-2 rounded-2xl border border-slate-200 dark:border-slate-800 backdrop-blur-sm">
+                        <div class="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-full md:w-auto">
+                            <button onclick="filterOffersByStatus('all')" class="offer-filter-btn active px-6 py-2 rounded-lg text-xs font-bold transition-all" data-status="all">All Offers</button>
+                            <button onclick="filterOffersByStatus('Pending')" class="offer-filter-btn px-6 py-2 rounded-lg text-xs font-bold transition-all text-slate-500" data-status="Pending">Pending</button>
+                            <button onclick="filterOffersByStatus('Sent')" class="offer-filter-btn px-6 py-2 rounded-lg text-xs font-bold transition-all text-slate-500" data-status="Sent">Sent</button>
+                            <button onclick="filterOffersByStatus('Signed')" class="offer-filter-btn px-6 py-2 rounded-lg text-xs font-bold transition-all text-slate-500" data-status="Signed">Signed</button>
+                        </div>
+                        
+                        <div class="relative w-full md:w-96">
+                            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                            <input type="text" id="offer-search" placeholder="Search candidate or position..." class="theme-input h-11 pl-10 pr-4 bg-white dark:bg-slate-800 border-none shadow-sm rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 transition-all font-medium" oninput="renderOffers()">
+                        </div>
+                    </div>
+
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="offers-list">
-                        <!-- Pending offers here -->
+                        <!-- Offers Injected Here -->
                     </div>
                 </div>
 
@@ -2394,6 +2435,28 @@
                 <button onclick="calcNum('0')" class="calc-btn col-span-2">0</button>
                 <button onclick="calcNum('.')" class="calc-btn">.</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Floating Bulk Action Bar for Offers -->
+    <div id="offer-bulk-bar" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-8 py-5 rounded-3xl shadow-2xl flex items-center gap-8 z-[1000] transition-all transform translate-y-32 opacity-0 pointer-events-none border border-slate-700/50 backdrop-blur-xl">
+        <div class="flex items-center gap-4 border-r border-slate-700 pr-8">
+            <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-black" id="offer-selected-count">0</div>
+            <div>
+                <p class="text-[10px] font-black uppercase tracking-tighter opacity-50">Offers Selected</p>
+                <p class="text-xs font-bold">Ready for Process</p>
+            </div>
+        </div>
+        <div class="flex gap-4">
+            <button onclick="bulkOfferAction('Sent')" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 rounded-xl text-xs font-black uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2">
+                <i class="fas fa-paper-plane"></i> Mark as Sent
+            </button>
+            <button onclick="bulkOfferAction('Signed')" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 rounded-xl text-xs font-black uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2">
+                <i class="fas fa-check-double"></i> Mark as Signed
+            </button>
+            <button onclick="clearOfferSelection()" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-black uppercase tracking-widest transition-all active:scale-95">
+                Cancel
+            </button>
         </div>
     </div>
 

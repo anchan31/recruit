@@ -11,6 +11,21 @@ let cachedJobs = [];
 let cachedCandidates = [];
 let cachedInterviews = [];
 let cachedOffers = []; // added back
+let currentOfferFilter = 'all';
+
+window.filterOffersByStatus = (status) => {
+    currentOfferFilter = status;
+    document.querySelectorAll('.offer-filter-btn').forEach(btn => {
+        if (btn.getAttribute('data-status') === status) {
+            btn.classList.add('bg-blue-600', 'text-white', 'shadow-md');
+            btn.classList.remove('text-slate-500');
+        } else {
+            btn.classList.remove('bg-blue-600', 'text-white', 'shadow-md');
+            btn.classList.add('text-slate-500');
+        }
+    });
+    renderOffers();
+};
 let cachedWaTemplates = []; // added back
 let cachedTasks = []; // added back
 let cachedTalentPool = [];
@@ -2351,19 +2366,27 @@ window.updateCandidateStage = async (id, stage) => {
         
         if (stage === 'Hired') {
             updateData.hiredAt = serverTimestamp();
+        }
 
+        if (stage === 'Selected') {
             const cand = cachedCandidates.find(c => c.id === id);
             const job = cand ? cachedJobs.find(j => j.id === cand.jobId) : null;
-
-            await addDoc(collection(db, "offers"), {
-                candidateId: id,
-                candidateName: cand ? cand.name : 'Unknown',
-                jobId: cand ? cand.jobId : null,
-                jobTitle: job ? job.title : 'Position Unknown',
-                status: 'Sent',
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp()
-            });
+            
+            // Check if offer already exists to avoid duplicates
+            const existingOffer = cachedOffers.find(o => o.candidateId === id);
+            
+            if (!existingOffer) {
+                await addDoc(collection(db, "offers"), {
+                    candidateId: id,
+                    candidateName: cand ? cand.name : 'Unknown',
+                    jobId: cand ? cand.jobId : null,
+                    jobTitle: job ? job.title : 'Position Unknown',
+                    offeredCTC: cand ? (cand.offeredCTC || cand.expectedCTC || 0) : 0,
+                    status: 'Pending',
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp()
+                });
+            }
         }
         await updateDoc(doc(db, "candidates", id), updateData);
 
@@ -3820,61 +3843,155 @@ window.renderOffers = () => {
     const list = document.getElementById('offers-list');
     if (!list) return;
 
-    const q = getEffectiveQuery('offers');
-    const filteredOffers = q ? cachedOffers.filter(o =>
-        (o.candidateName || '').toLowerCase().includes(q) ||
-        (o.jobTitle || '').toLowerCase().includes(q)
-    ) : cachedOffers;
+    // Update Top Summary Stats
+    const totalOffers = cachedOffers.length;
+    const pendingOffers = cachedOffers.filter(o => (o.status || 'Pending') === 'Pending').length;
+    const sentOffers = cachedOffers.filter(o => o.status === 'Sent').length;
+    const signedOffers = cachedOffers.filter(o => o.status === 'Signed').length;
+
+    if (document.getElementById('offer-stat-total')) document.getElementById('offer-stat-total').innerText = totalOffers;
+    if (document.getElementById('offer-stat-pending')) document.getElementById('offer-stat-pending').innerText = pendingOffers;
+    if (document.getElementById('offer-stat-sent')) document.getElementById('offer-stat-sent').innerText = sentOffers;
+    if (document.getElementById('offer-stat-signed')) document.getElementById('offer-stat-signed').innerText = signedOffers;
+
+    const searchTerm = document.getElementById('offer-search')?.value.toLowerCase() || '';
+    
+    let filteredOffers = cachedOffers;
+    if (currentOfferFilter !== 'all') {
+        filteredOffers = filteredOffers.filter(o => (o.status || 'Pending') === currentOfferFilter);
+    }
+    
+    if (searchTerm) {
+        filteredOffers = filteredOffers.filter(o => 
+            (o.candidateName || '').toLowerCase().includes(searchTerm) ||
+            (o.jobTitle || '').toLowerCase().includes(searchTerm)
+        );
+    }
 
     if (filteredOffers.length === 0) {
-        list.innerHTML = `<div class="col-span-full py-10 text-center text-slate-400 font-medium">No pending offers.</div>`;
+        list.innerHTML = `
+            <div class="col-span-full py-16 text-center animate-fade-up">
+                <div class="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+                    <i class="fas fa-inbox text-2xl"></i>
+                </div>
+                <h4 class="text-slate-400 font-bold mb-1">No offers found</h4>
+                <p class="text-slate-500 text-xs">Try changing filters or searching for someone else.</p>
+            </div>`;
         return;
     }
 
-    list.innerHTML = filteredOffers.map(o => {
+    list.innerHTML = filteredOffers.map((o, idx) => {
+        const cand = cachedCandidates.find(c => c.id === o.candidateId);
+        const job = cachedJobs.find(j => j.id === o.jobId);
         const status = o.status || 'Pending';
-        const statusClass = status === 'Signed' ? 'bg-emerald-100 text-emerald-700' : (status === 'Sent' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600');
+        
+        const statusConfig = {
+            'Pending': { icon: 'fa-clock', color: 'orange', label: 'Preparation' },
+            'Sent': { icon: 'fa-paper-plane', color: 'indigo', label: 'Offer Sent' },
+            'Signed': { icon: 'fa-file-signature', color: 'emerald', label: 'Completed' }
+        }[status] || { icon: 'fa-circle', color: 'slate', label: status };
+
+        const initials = (o.candidateName || '?')[0].toUpperCase();
+        const ctc = o.offeredCTC ? `₹${Number(o.offeredCTC).toLocaleString('en-IN')}` : 'TBD';
 
         return `
-                <div class="glass-card p-6 rounded-2xl border border-slate-200 dark:border-slate-800 hover:shadow-lg transition-all">
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center font-bold text-blue-600 text-xl shadow-sm italic">
-                            ${(o.candidateName || '?')[0]}
+            <div class="glass-card p-6 rounded-3xl border border-slate-200 dark:border-slate-800 hover:shadow-2xl hover:shadow-blue-500/10 transition-all group animate-fade-up relative" style="animation-delay: ${idx * 0.05}s">
+                <!-- Checkbox for Bulk Selection -->
+                <div class="absolute top-5 left-5 z-10 opacity-0 group-hover:opacity-100 has-[:checked]:opacity-100 transition-all">
+                    <input type="checkbox" name="offer-check" value="${o.id}" class="w-5 h-5 rounded-lg border-slate-300 text-blue-600 transition-all cursor-pointer shadow-sm">
+                </div>
+
+                <!-- Status Header -->
+                <div class="flex justify-between items-start mb-5 ml-2">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-2xl bg-${statusConfig.color}-50 dark:bg-${statusConfig.color}-900/20 flex items-center justify-center font-black text-${statusConfig.color}-600 text-xl shadow-sm italic">
+                            ${initials}
                         </div>
-                        <span class="text-[10px] font-bold uppercase px-3 py-1 ${statusClass} rounded-full transition-all tracking-wider font-mono">
-                            ${status}
-                        </span>
+                        <div>
+                            <h4 class="font-bold text-slate-800 dark:text-white leading-tight">${highlight(o.candidateName || 'Unknown', searchTerm)}</h4>
+                            <p class="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-0.5">${statusConfig.label}</p>
+                        </div>
+                    </div>
+                    <div class="p-2.5 rounded-xl bg-${statusConfig.color}-100/50 dark:bg-${statusConfig.color}-900/40 text-${statusConfig.color}-600">
+                        <i class="fas ${statusConfig.icon}"></i>
+                    </div>
+                </div>
+
+                <!-- Job Info -->
+                <div class="space-y-3 mb-6 bg-slate-50/50 dark:bg-slate-900/30 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/50">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-briefcase text-xs text-slate-400 w-4"></i>
+                        <span class="text-xs font-bold text-slate-600 dark:text-white truncate">${o.jobTitle || 'Position Unknown'}</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-layer-group text-xs text-slate-400 w-4"></i>
+                        <span class="text-[10px] font-semibold text-slate-500">${job?.department || 'N/A'} • ${job?.location || 'Remote'}</span>
+                    </div>
+                    <div class="pt-2 mt-2 border-t border-slate-200/50 dark:border-slate-800 flex justify-between items-center">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">Monthly Package</span>
+                        <span class="text-sm font-black text-${statusConfig.color}-600">${ctc}<span class="text-[9px] font-semibold opacity-60">/mo</span></span>
+                    </div>
+                </div>
+
+                <!-- Progress Tracker -->
+                <div class="px-2 mb-6">
+                    <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full flex gap-1.5 p-0.5">
+                        <div class="flex-1 rounded-full ${status === 'Pending' ? 'bg-orange-400 animate-pulse' : 'bg-emerald-500'}"></div>
+                        <div class="flex-1 rounded-full ${status === 'Sent' ? 'bg-indigo-500 animate-pulse' : (status === 'Signed' ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700')}"></div>
+                        <div class="flex-1 rounded-full ${status === 'Signed' ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700'}"></div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex flex-col gap-2">
+                    <div class="flex gap-2">
+                        <button onclick="sendOfferWhatsApp('${o.id}')" class="flex-1 py-2 rounded-xl bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366] hover:text-white transition-all text-[10px] font-bold uppercase flex items-center justify-center gap-2">
+                            <i class="fab fa-whatsapp"></i> WhatsApp
+                        </button>
+                        <button onclick="sendOfferEmail('${o.id}')" class="flex-1 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-[10px] font-bold uppercase flex items-center justify-center gap-2">
+                            <i class="fas fa-envelope"></i> Email
+                        </button>
                     </div>
                     
-                    <div class="space-y-1">
-                        <h4 class="font-bold text-slate-800 dark:text-white text-base leading-tight">
-                            ${highlight(o.candidateName || 'Unknown', getEffectiveQuery('offers'))}
-                        </h4>
-                        <p class="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-                            <i class="fas fa-briefcase text-[10px] opacity-70"></i>
-                            ${o.jobTitle || 'Position Unknown'}
-                        </p>
-                    </div>
-
-                    <div class="mt-6 pt-5 border-t border-slate-50 dark:border-slate-800/50 flex gap-3">
-                        ${status === 'Pending' ? `
-                            <button onclick="updateOfferStatus('${o.id}', 'Sent')" class="flex-1 py-2.5 text-[10px] font-bold uppercase bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-500/20 transition-all active:scale-95">
-                                <i class="fas fa-paper-plane mr-1.5"></i> Mark as Sent
-                            </button>
-                        ` : ''}
-                        ${status === 'Sent' ? `
-                            <button onclick="updateOfferStatus('${o.id}', 'Signed')" class="flex-1 py-2.5 text-[10px] font-bold uppercase bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95">
-                                <i class="fas fa-file-signature mr-1.5"></i> Mark as Signed
-                            </button>
-                        ` : ''}
-                        ${status === 'Signed' ? `
-                            <div class="w-full py-2 text-center text-[10px] font-bold uppercase text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-800/50">
-                                <i class="fas fa-check-circle mr-1.5"></i> Offer Completed
-                            </div>
-                        ` : ''}
-                    </div>
-                </div>`;
+                    ${status === 'Pending' ? `
+                        <button onclick="updateOfferStatus('${o.id}', 'Sent')" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-indigo-500/20 transition-all transform active:scale-95 flex items-center justify-center gap-2">
+                            Next Stage: Dispatch <i class="fas fa-arrow-right"></i>
+                        </button>
+                    ` : ''}
+                    ${status === 'Sent' ? `
+                        <button onclick="updateOfferStatus('${o.id}', 'Signed')" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all transform active:scale-95 flex items-center justify-center gap-2">
+                            Candidate Signed <i class="fas fa-check-double"></i>
+                        </button>
+                    ` : ''}
+                    ${status === 'Signed' ? `
+                        <div class="w-full py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 text-[11px] font-black uppercase tracking-widest rounded-xl flex items-center justify-center border border-emerald-100 dark:border-emerald-800/50">
+                            Offer Completed <i class="fas fa-check-circle ml-2"></i>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>`;
     }).join('');
+};
+
+window.sendOfferWhatsApp = (id) => {
+    const o = cachedOffers.find(x => x.id === id);
+    const cand = cachedCandidates.find(c => c.id === o?.candidateId);
+    if (!cand || !cand.phone) return showToast("No phone number registered", "error");
+    
+    const message = `Dear ${cand.name}, we are pleased to inform you that we've forwarded your offer letter for the ${o.jobTitle} position. Please check your email. Looking forward to having you on the team!`;
+    const url = `https://wa.me/${cand.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+};
+
+window.sendOfferEmail = (id) => {
+    const o = cachedOffers.find(x => x.id === id);
+    const cand = cachedCandidates.find(c => c.id === o?.candidateId);
+    if (!cand || !cand.email) return showToast("No email registered", "error");
+    
+    const subject = `Offer Letter - ${o.jobTitle} | Recruitment Team`;
+    const body = `Dear ${cand.name},\n\nWe are excited to share your offer letter for the position of ${o.jobTitle}. Please find the details attached.\n\nBest Regards,\nRecruitment Team`;
+    const url = `mailto:${cand.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(url, '_blank');
 };
 
 window.updateOfferStatus = async (id, status) => {
@@ -3883,6 +4000,20 @@ window.updateOfferStatus = async (id, status) => {
             status: status,
             updatedAt: serverTimestamp()
         });
+
+        // Automation: If offer is SENT, move candidate to HIRED
+        if (status === 'Sent') {
+            const offer = cachedOffers.find(o => o.id === id);
+            if (offer && offer.candidateId) {
+                await updateDoc(doc(db, "candidates", offer.candidateId), {
+                    stage: 'Hired',
+                    hiredAt: serverTimestamp(),
+                    updatedAt: serverTimestamp()
+                });
+                showToast("Candidate marked as HIRED!");
+            }
+        }
+        
         showToast(status);
         renderOffers();
     } catch (e) {
@@ -4960,7 +5091,47 @@ document.addEventListener('change', (e) => {
     if (e.target.name === 'inbox-candidate-check') {
         toggleBulkBar();
     }
+    if (e.target.name === 'offer-check') {
+        toggleOfferBulkBar();
+    }
 });
+
+window.toggleOfferBulkBar = () => {
+    const selected = document.querySelectorAll('input[name="offer-check"]:checked').length;
+    const bar = document.getElementById('offer-bulk-bar');
+    const countEl = document.getElementById('offer-selected-count');
+    if (bar) {
+        if (selected > 0) {
+            bar.classList.remove('translate-y-32', 'opacity-0', 'pointer-events-none');
+            bar.classList.add('translate-y-0', 'opacity-100');
+            if (countEl) countEl.innerText = selected;
+        } else {
+            bar.classList.add('translate-y-32', 'opacity-0', 'pointer-events-none');
+            bar.classList.remove('translate-y-0', 'opacity-100');
+        }
+    }
+};
+
+window.clearOfferSelection = () => {
+    document.querySelectorAll('input[name="offer-check"]').forEach(c => c.checked = false);
+    toggleOfferBulkBar();
+};
+
+window.bulkOfferAction = async (status) => {
+    const selected = Array.from(document.querySelectorAll('input[name="offer-check"]:checked')).map(i => i.value);
+    if (selected.length === 0) return;
+
+    try {
+        showToast(`Processing ${selected.length} offers...`);
+        const promises = selected.map(id => updateOfferStatus(id, status));
+        await Promise.all(promises);
+        showToast(`Bulk updated to ${status}.`);
+        clearOfferSelection();
+    } catch (err) {
+        console.error("Bulk offer update error:", err);
+        showToast("Bulk action failed.", "error");
+    }
+};
 
 function toggleBulkBar() {
     const selected = document.querySelectorAll('input[name="inbox-candidate-check"]:checked').length;
