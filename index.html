@@ -105,6 +105,11 @@
                         <input type="text" name="title" required placeholder="e.g. Follow up with Interviewers"
                             class="theme-input bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 focus:ring-4 focus:ring-orange-500/10 transition-all font-medium">
                     </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Description</label>
+                        <textarea name="description" rows="3" placeholder="Add more context about this task..."
+                            class="theme-input bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 focus:ring-4 focus:ring-orange-500/10 transition-all font-medium resize-none"></textarea>
+                    </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label
@@ -120,6 +125,20 @@
                             <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1.5">Due
                                 Date</label>
                             <input type="date" name="dueDate" class="theme-input cursor-pointer">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Tags (comma separated)</label>
+                        <input type="text" name="tags" placeholder="e.g. Urgent, Interview, High Priority"
+                            class="theme-input bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 focus:ring-4 focus:ring-orange-500/10 transition-all font-medium">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="block text-sm font-bold text-slate-700 dark:text-slate-300">Sub-tasks / Checklist</label>
+                            <button type="button" onclick="addTaskSubtask()" class="text-[10px] font-bold uppercase text-orange-600 hover:orange-700">+ Add Item</button>
+                        </div>
+                        <div id="task-subtasks-container" class="space-y-2 max-h-32 overflow-y-auto pr-1 custom-scrollbar">
+                            <!-- Subtasks injected here -->
                         </div>
                     </div>
                     <div class="flex justify-end gap-3 pt-4">
@@ -967,10 +986,26 @@
                             <p class="text-xs text-slate-500 text-orange-600 dark:text-orange-400 font-medium">
                                 Coordinate your team's internal recruitment tasks</p>
                         </div>
-                        <button onclick="openAddTaskModal()"
-                            class="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl gap-2 flex items-center shadow-lg shadow-orange-500/20 transition-all active:scale-95">
-                            <i class="fas fa-plus"></i> New Task
-                        </button>
+                        <div class="flex items-center gap-4 w-full md:w-auto">
+                            <div class="relative flex-1 md:w-64">
+                                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                                <input type="text" id="task-search" placeholder="Search tasks..." 
+                                    oninput="renderTasks()"
+                                    class="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all">
+                            </div>
+                            <select id="task-priority-filter" onchange="renderTasks()"
+                                class="pl-4 pr-10 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 outline-none focus:ring-2 focus:ring-orange-500/20 transition-all appearance-none cursor-pointer">
+                                <option value="All">All Priorities</option>
+                                <option value="Low">Low</option>
+                                <option value="Medium">Medium</option>
+                                <option value="High">High</option>
+                                <option value="Urgent">Urgent</option>
+                            </select>
+                            <button onclick="openAddTaskModal()"
+                                class="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl gap-2 flex items-center shadow-lg shadow-orange-500/20 transition-all active:scale-95 whitespace-nowrap">
+                                <i class="fas fa-plus"></i> New Task
+                            </button>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-250px)] overflow-hidden">
@@ -986,8 +1021,8 @@
                                 <span id="count-todo"
                                     class="bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] px-2 py-0.5 rounded-full font-bold">0</span>
                             </div>
-                            <div id="kanban-todo"
-                                class="flex-1 overflow-y-auto space-y-4 p-2 bg-slate-100/30 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                             <div id="kanban-todo" ondrop="dropTask(event, 'todo')" ondragover="allowTaskDrop(event)"
+                                class="flex-1 overflow-y-auto space-y-4 p-2 bg-slate-100/30 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 transition-colors kanban-column">
                                 <!-- Cards -->
                             </div>
                         </div>
@@ -1004,8 +1039,8 @@
                                 <span id="count-inprogress"
                                     class="bg-blue-50 dark:bg-blue-900/30 text-blue-600 text-[10px] px-2 py-0.5 rounded-full font-bold">0</span>
                             </div>
-                            <div id="kanban-inprogress"
-                                class="flex-1 overflow-y-auto space-y-4 p-2 bg-blue-50/10 dark:bg-blue-900/10 rounded-2xl border border-dashed border-blue-100 dark:border-blue-900/30">
+                             <div id="kanban-inprogress" ondrop="dropTask(event, 'inprogress')" ondragover="allowTaskDrop(event)"
+                                class="flex-1 overflow-y-auto space-y-4 p-2 bg-blue-50/10 dark:bg-blue-900/10 rounded-2xl border border-dashed border-blue-100 dark:border-blue-900/30 transition-colors kanban-column">
                                 <!-- Cards -->
                             </div>
                         </div>
@@ -1022,8 +1057,8 @@
                                 <span id="count-done"
                                     class="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 text-[10px] px-2 py-0.5 rounded-full font-bold">0</span>
                             </div>
-                            <div id="kanban-done"
-                                class="flex-1 overflow-y-auto space-y-4 p-2 bg-emerald-50/10 dark:bg-emerald-900/10 rounded-2xl border border-dashed border-emerald-100 dark:border-emerald-900/30">
+                             <div id="kanban-done" ondrop="dropTask(event, 'done')" ondragover="allowTaskDrop(event)"
+                                class="flex-1 overflow-y-auto space-y-4 p-2 bg-emerald-50/10 dark:bg-emerald-900/10 rounded-2xl border border-dashed border-emerald-100 dark:border-emerald-900/30 transition-colors kanban-column">
                                 <!-- Cards -->
                             </div>
                         </div>

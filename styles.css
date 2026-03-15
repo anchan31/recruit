@@ -955,3 +955,74 @@
                 transform: scale(1) translateY(0);
             }
         }
+
+        /* Task Board Specific Styles */
+        .kanban-column.drag-over {
+            background-color: rgba(59, 130, 246, 0.05);
+            border-color: rgba(59, 130, 246, 0.3) !important;
+        }
+
+        .task-card.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+            transform: scale(0.95);
+            box-shadow: none !important;
+        }
+
+        .tag-badge {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            letter-spacing: 0.025em;
+        }
+
+        .tag-urgent { background-color: #fee2e2; color: #ef4444; }
+        .tag-high { background-color: #ffedd5; color: #f97316; }
+        .tag-medium { background-color: #dbeafe; color: #3b82f6; }
+        .tag-low { background-color: #f1f5f9; color: #64748b; }
+
+        .subtask-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background-color: rgba(255, 255, 255, 0.5);
+            border-radius: 8px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .dark .subtask-item {
+            background-color: rgba(0, 0, 0, 0.2);
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .progress-bar-container {
+            height: 4px;
+            background-color: #f1f5f9;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .dark .progress-bar-container {
+            background-color: #1e293b;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background-color: #3b82f6;
+            transition: width 0.3s ease;
+        }
+
+        .task-description-snippet {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .modal-box .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }

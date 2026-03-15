@@ -112,7 +112,11 @@ function computeSearchCount(query) {
     if (!query) return 0;
     const q = query.toLowerCase();
     let count = 0;
-    count += cachedCandidates.filter(c => (c.name || '').toLowerCase().includes(q) || (c.email || '').toLowerCase().includes(q) || (c.phone || '').toLowerCase().includes(q)).length;
+    count += cachedCandidates.filter(c => 
+        ((c.name || '').toLowerCase().includes(q) || 
+         (c.email || '').toLowerCase().includes(q) || 
+         (c.phone || '').toLowerCase().includes(q))
+    ).length;
     count += cachedJobs.filter(j => (j.title || '').toLowerCase().includes(q) || (j.department || '').toLowerCase().includes(q)).length;
     count += cachedCompanies.filter(c => (c.name || '').toLowerCase().includes(q)).length;
     return count;
@@ -208,6 +212,7 @@ function exportCandidatesCSV() {
         const filterVal = document.getElementById('filter-budget').value;
         const q = getEffectiveQuery('candidates');
         let arr = cachedCandidates.filter(c => {
+            if (c.inTalentPool) return false;
             const job = cachedJobs.find(j => j.id === c.jobId || j.title === c.jobId);
             const jobTitle = job ? job.title.toLowerCase() : (c.jobId || '').toLowerCase();
             if (!q) return true;
@@ -243,6 +248,7 @@ function bulkSelectAndMessage() {
         const q = getEffectiveQuery('candidates');
         const filterVal = document.getElementById('filter-budget').value;
         let arr = cachedCandidates.filter(c => {
+            if (c.inTalentPool) return false;
             const job = cachedJobs.find(j => j.id === c.jobId || j.title === c.jobId);
             const jobTitle = job ? job.title.toLowerCase() : (c.jobId || '').toLowerCase();
             if (!q) return true;
@@ -414,25 +420,20 @@ function setupRealtimeListeners() {
         if (typeof renderTalentPool === 'function') renderTalentPool();
     });
 
-    // Listen for Candidates
+    // Listen for Candidates (Unified)
     const candidateQuery = collection(db, "candidates");
     onSnapshot(candidateQuery, (snapshot) => {
         cachedCandidates = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Populate cachedTalentPool by filtering cachedCandidates
+        cachedTalentPool = cachedCandidates.filter(c => c.inTalentPool);
+
         renderCandidates();
         updateDashboard();
         updateDropdowns();
         if (typeof renderTalentPool === 'function') renderTalentPool();
         if (typeof updateTalentPoolBadge === 'function') updateTalentPoolBadge();
-    });
-
-    // Listen for Talent Pool
-    const talentPoolQuery = collection(db, "talentpool");
-    onSnapshot(talentPoolQuery, (snapshot) => {
-        cachedTalentPool = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        if (typeof renderTalentPool === 'function') renderTalentPool();
-        if (typeof updateTalentPoolBadge === 'function') updateTalentPoolBadge();
         if (typeof renderInboxCandidates === 'function' && currentInboxJobId) renderInboxCandidates();
-        updateDashboard();
     });
 
     // Listen for Interviews
@@ -1618,17 +1619,34 @@ function renderDashboardTasks() {
     }
 
     container.innerHTML = pending.slice(0, 5).map((t, index) => {
-        const priorityClass = { 'Low': 'text-slate-400', 'Medium': 'text-blue-500', 'High': 'text-orange-500', 'Urgent': 'text-red-500' }[t.priority] || 'text-slate-400';
+        const priorityClass = { 'Low': 'tag-low', 'Medium': 'tag-medium', 'High': 'tag-high', 'Urgent': 'tag-urgent' }[t.priority] || 'tag-low';
+        const subtasks = t.subtasks || [];
+        const doneSubtasks = subtasks.filter(s => s.done).length;
+        const progress = subtasks.length > 0 ? (doneSubtasks / subtasks.length) * 100 : 0;
+        
         const staggerClass = index < 5 ? `animate-fade-up stagger-${index + 1}` : '';
 
         return `
-            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/20 border border-slate-100 dark:border-slate-800 hover:border-blue-500/20 transition-all group hover-lift ${staggerClass}">
+            <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/20 border border-slate-100 dark:border-slate-800 hover:border-orange-500/20 transition-all group hover-lift ${staggerClass}">
                 <div class="flex items-start gap-3">
-                    <div class="mt-1"><i class="fas fa-circle ${priorityClass} text-[6px]"></i></div>
                     <div class="flex-1">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="tag-badge ${priorityClass}">${t.priority}</span>
+                            <span class="text-[9px] font-bold text-slate-400">Due: ${t.dueDate || 'N/A'}</span>
+                        </div>
                         <p class="text-xs font-bold text-slate-700 dark:text-slate-200">${t.title}</p>
-                        <div class="flex justify-between items-center mt-1">
-                            <span class="text-[9px] text-slate-400">Due: ${t.dueDate || 'N/A'}</span>
+                        ${subtasks.length > 0 ? `
+                        <div class="mt-2 space-y-1">
+                            <div class="flex justify-between items-center text-[8px] font-bold text-slate-400">
+                                <span>Checklist</span>
+                                <span>${doneSubtasks}/${subtasks.length}</span>
+                            </div>
+                            <div class="progress-bar-container" style="height: 2px;">
+                                <div class="progress-bar-fill" style="width: ${progress}%"></div>
+                            </div>
+                        </div>
+                        ` : ''}
+                        <div class="flex justify-end mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/50">
                             <button onclick="moveTask('${t.id}', 'done')" class="text-[9px] font-bold text-blue-500 hover:underline opacity-0 group-hover:opacity-100 transition-opacity uppercase">Complete</button>
                         </div>
                     </div>
@@ -2324,12 +2342,15 @@ window.editWaTemplate = (id) => {
 
 window.updateCandidateStage = async (id, stage) => {
     try {
-        const updateData = { stage, inTalentPool: false, isNew: false };
+        const poolStages = ['Backed Out', 'Not Interested', 'Applied'];
+        const updateData = { 
+            stage, 
+            inTalentPool: poolStages.includes(stage), 
+            isNew: false 
+        };
+        
         if (stage === 'Hired') {
             updateData.hiredAt = serverTimestamp();
-
-            // Legacy: we'll remove this field after cleanup
-            // updateData.offerStatus = 'Sent'; 
 
             const cand = cachedCandidates.find(c => c.id === id);
             const job = cand ? cachedJobs.find(j => j.id === cand.jobId) : null;
@@ -3636,30 +3657,101 @@ window.renderTasks = () => {
     Object.values(columns).forEach(col => { if (col) col.innerHTML = ''; });
     const listCounts = { 'todo': 0, 'inprogress': 0, 'done': 0 };
 
+    const searchQuery = document.getElementById('task-search') ? document.getElementById('task-search').value.toLowerCase() : '';
+    const priorityFilter = document.getElementById('task-priority-filter') ? document.getElementById('task-priority-filter').value : 'All';
+
     cachedTasks.forEach(task => {
-        const status = (task.status || 'todo').toLowerCase().replace(' ', '');
-        if (columns[status]) {
-            listCounts[status]++;
-            const priorityClass = { 'Low': 'bg-slate-100', 'Medium': 'bg-blue-50', 'High': 'bg-orange-50', 'Urgent': 'bg-red-50' }[task.priority] || 'bg-slate-100';
-            const next = { 'todo': { label: 'Start', n: 'inprogress' }, 'inprogress': { label: 'Done', n: 'done' }, 'done': { label: 'Reopen', n: 'todo' } }[status];
-            columns[status].innerHTML += `
-                        <div class="glass-card p-4 rounded-xl border border-slate-200 mb-3 animate-in fade-in group">
-                            <div class="flex justify-between items-start">
-                                <span class="text-[8px] font-bold uppercase px-2 py-0.5 rounded-full ${priorityClass}">${task.priority}</span>
-                                <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button onclick="editTask('${task.id}')" class="text-slate-400 hover:text-blue-500 transition" title="Edit Task"><i class="fas fa-edit text-[10px]"></i></button>
-                                    <button onclick="deleteDocById('tasks', '${task.id}')" class="text-slate-400 hover:text-red-500 transition" title="Delete Task"><i class="fas fa-trash text-[10px]"></i></button>
-                                </div>
+        const title = (task.title || '').toLowerCase();
+        const desc = (task.description || '').toLowerCase();
+        const matchesSearch = !searchQuery || title.includes(searchQuery) || desc.includes(searchQuery);
+        const matchesPriority = priorityFilter === 'All' || task.priority === priorityFilter;
+
+        if (matchesSearch && matchesPriority) {
+            const status = (task.status || 'todo').toLowerCase().replace(' ', '');
+            if (columns[status]) {
+                listCounts[status]++;
+                
+                // Priority Styles
+                const priorityClass = { 'Low': 'tag-low', 'Medium': 'tag-medium', 'High': 'tag-high', 'Urgent': 'tag-urgent' }[task.priority] || 'tag-low';
+                
+                // Subtasks Progress
+                const subtasks = task.subtasks || [];
+                const doneSubtasks = subtasks.filter(s => s.done).length;
+                const progress = subtasks.length > 0 ? (doneSubtasks / subtasks.length) * 100 : 0;
+                
+                // Tags
+                const tagsStr = (task.tags || '').split(',').map(t => t.trim()).filter(t => t);
+                const tagsHtml = tagsStr.map(t => `<span class="tag-badge bg-slate-100 dark:bg-slate-800 text-slate-500 mr-1">${t}</span>`).join('');
+
+                columns[status].innerHTML += `
+                    <div class="glass-card p-4 rounded-2xl border border-slate-200 dark:border-slate-800 mb-3 animate-in fade-in group task-card" 
+                         draggable="true" ondragstart="dragTask(event, '${task.id}')">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="tag-badge ${priorityClass}">${task.priority}</span>
+                            <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onclick="editTask('${task.id}')" class="text-slate-400 hover:text-blue-500 transition" title="Edit Task"><i class="fas fa-edit text-[10px]"></i></button>
+                                <button onclick="deleteDocById('tasks', '${task.id}')" class="text-slate-400 hover:text-red-500 transition" title="Delete Task"><i class="fas fa-trash text-[10px]"></i></button>
                             </div>
-                            <h5 class="text-sm font-bold mt-2">${task.title}</h5>
-                            <div class="flex justify-between items-center mt-4 pt-2 border-t border-slate-100">
-                                <span class="text-[9px] text-slate-500">${task.dueDate || 'No date'}</span>
-                                <button onclick="moveTask('${task.id}', '${next.n}')" class="text-[9px] font-bold uppercase text-blue-500 hover:underline">${next.label}</button>
+                        </div>
+                        <h5 class="text-sm font-bold text-slate-800 dark:text-white">${task.title}</h5>
+                        ${task.description ? `<p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 task-description-snippet">${task.description}</p>` : ''}
+                        
+                        <div class="mt-3 flex flex-wrap gap-1">
+                            ${tagsHtml}
+                        </div>
+
+                        ${subtasks.length > 0 ? `
+                        <div class="mt-3 space-y-1.5">
+                            <div class="flex justify-between items-center text-[10px] font-bold text-slate-500">
+                                <span>Checklist</span>
+                                <span>${doneSubtasks}/${subtasks.length}</span>
                             </div>
-                        </div>`;
+                            <div class="progress-bar-container">
+                                <div class="progress-bar-fill" style="width: ${progress}%"></div>
+                            </div>
+                        </div>
+                        ` : ''}
+
+                        <div class="flex justify-between items-center mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/50">
+                            <span class="text-[9px] font-medium text-slate-500 flex items-center gap-1">
+                                <i class="far fa-calendar text-[10px]"></i> ${task.dueDate || 'No date'}
+                            </span>
+                            <div class="flex items-center gap-2">
+                                ${status === 'todo' ? `<button onclick="moveTask('${task.id}', 'inprogress')" class="text-[10px] font-bold text-blue-500 hover:underline">Start</button>` : ''}
+                                ${status === 'inprogress' ? `<button onclick="moveTask('${task.id}', 'done')" class="text-[10px] font-bold text-emerald-500 hover:underline">Done</button>` : ''}
+                                ${status === 'done' ? `<button onclick="moveTask('${task.id}', 'todo')" class="text-[10px] font-bold text-slate-500 hover:underline">Reopen</button>` : ''}
+                            </div>
+                        </div>
+                    </div>`;
+            }
         }
     });
     Object.keys(counts).forEach(k => { if (counts[k]) counts[k].innerText = listCounts[k]; });
+};
+
+window.dragTask = (e, id) => {
+    e.dataTransfer.setData('taskId', id);
+    e.target.classList.add('dragging');
+};
+
+window.allowTaskDrop = (e) => {
+    e.preventDefault();
+    const col = e.target.closest('.kanban-column');
+    if (col) col.classList.add('drag-over');
+};
+
+window.dropTask = async (e, status) => {
+    e.preventDefault();
+    const id = e.dataTransfer.getData('taskId');
+    const cols = document.querySelectorAll('.kanban-column');
+    cols.forEach(c => c.classList.remove('drag-over'));
+    
+    // Remove dragging class from all cards (just in case)
+    document.querySelectorAll('.task-card').forEach(c => c.classList.remove('dragging'));
+
+    if (id) {
+        moveTask(id, status);
+    }
 };
 
 window.openAddTaskModal = () => {
@@ -3667,6 +3759,10 @@ window.openAddTaskModal = () => {
     if (form) form.reset();
     const idInput = document.getElementById('form-task-id');
     if (idInput) idInput.value = '';
+    
+    document.getElementById('task-subtasks-container').innerHTML = '';
+    document.getElementById('modal-task-title').innerHTML = '<i class="fas fa-list-check"></i> Add New Task';
+    
     openModal('modal-task');
 };
 
@@ -3680,14 +3776,44 @@ window.editTask = (id) => {
     if (idInput) idInput.value = id;
 
     if (form.elements['title']) form.elements['title'].value = task.title || '';
+    if (form.elements['description']) form.elements['description'].value = task.description || '';
     if (form.elements['priority']) form.elements['priority'].value = task.priority || 'Medium';
     if (form.elements['dueDate']) form.elements['dueDate'].value = task.dueDate || '';
+    if (form.elements['tags']) form.elements['tags'].value = task.tags || '';
 
+    // Subtasks
+    const container = document.getElementById('task-subtasks-container');
+    container.innerHTML = '';
+    if (task.subtasks) {
+        task.subtasks.forEach((s, idx) => {
+            addTaskSubtask(s.text, s.done, idx);
+        });
+    }
+
+    document.getElementById('modal-task-title').innerHTML = '<i class="fas fa-edit"></i> Edit Task';
     openModal('modal-task');
 };
 
 window.moveTask = async (id, status) => {
-    try { await updateDoc(doc(db, "tasks", id), { status }); showToast("Moved"); } catch (e) { showError("Failed"); }
+    try { 
+        const task = cachedTasks.find(t => t.id === id);
+        if (task && task.status === status) return; // No change
+        await updateDoc(doc(db, "tasks", id), { status }); 
+        showToast("Moved to " + status); 
+    } catch (e) { showError("Failed to move task"); }
+};
+
+window.addTaskSubtask = (text = '', done = false, idx = null) => {
+    const container = document.getElementById('task-subtasks-container');
+    const div = document.createElement('div');
+    div.className = 'subtask-item animate-in fade-in';
+    div.innerHTML = `
+        <input type="checkbox" class="task-subtask-check w-4 h-4 rounded text-orange-600 focus:ring-orange-500" ${done ? 'checked' : ''}>
+        <input type="text" class="task-subtask-text flex-1 bg-transparent border-none outline-none text-xs font-medium dark:text-slate-300" 
+            placeholder="Subtask description..." value="${text}">
+        <button type="button" onclick="this.parentElement.remove()" class="text-slate-400 hover:text-red-500 transition"><i class="fas fa-times text-[10px]"></i></button>
+    `;
+    container.appendChild(div);
 };
 
 window.renderOffers = () => {
@@ -4559,7 +4685,8 @@ window.renderTalentPool = () => {
     jobList.innerHTML = jobs.map(j => {
         const jobResponses = candidates.filter(c => c.jobId === j.id);
         const newCount = jobResponses.filter(c => c.isNew).length;
-        const shortlistedCount = cachedCandidates.filter(c => c.jobId === j.id && !c.inTalentPool && c.stage !== 'REJECTED').length;
+        const rejectedStages = ['REJECTED', 'Rejected', 'Backed Out', 'Not Interested'];
+        const shortlistedCount = cachedCandidates.filter(c => c.jobId === j.id && !c.inTalentPool && !rejectedStages.includes(c.stage)).length;
         const statusColor = j.status === 'Open' || j.status === 'Active' ? 'emerald' : 'slate';
 
         return `
@@ -4665,33 +4792,33 @@ window.renderInboxCandidates = () => {
 
     const job = cachedJobs.find(j => j.id === currentInboxJobId);
     let candidates = cachedTalentPool.filter(c => c.jobId === currentInboxJobId);
-    let shortlisted = cachedCandidates.filter(c => c.jobId === currentInboxJobId && c.stage !== 'REJECTED');
-    let rejected = cachedCandidates.filter(c => c.jobId === currentInboxJobId && c.stage === 'REJECTED');
-    const searchTerm = document.getElementById('inbox-search')?.value.toLowerCase() || '';
+    const rejectedStages = ['REJECTED', 'Rejected', 'Backed Out', 'Not Interested'];
+    const shortlistedCandidates = cachedCandidates.filter(c => c.jobId === currentInboxJobId && !rejectedStages.includes(c.stage));
+    const rejectedCandidates = cachedCandidates.filter(c => c.jobId === currentInboxJobId && rejectedStages.includes(c.stage));
 
     // Apply Folder Filter
     if (currentInboxFilter === 'all') candidates = candidates; // now just refers to talentpool candidates
     else if (currentInboxFilter === 'new') candidates = candidates.filter(c => c.isNew);
-    else if (currentInboxFilter === 'shortlisted') candidates = shortlisted;
-    else if (currentInboxFilter === 'rejected') candidates = rejected;
+    else if (currentInboxFilter === 'shortlisted') candidates = shortlistedCandidates;
+    else if (currentInboxFilter === 'rejected') candidates = rejectedCandidates;
 
     // Apply Search Filter
     if (searchTerm) {
         candidates = candidates.filter(c =>
-            c.name.toLowerCase().includes(searchTerm) ||
-            c.email.toLowerCase().includes(searchTerm) ||
-            (c.skills && c.skills.toLowerCase().includes(searchTerm)) ||
-            (c.currentDesignation && c.currentDesignation.toLowerCase().includes(searchTerm))
+            (c.name || "").toLowerCase().includes(searchTerm) ||
+            (c.email || "").toLowerCase().includes(searchTerm) ||
+            ((c.skills || "") && c.skills.toLowerCase().includes(searchTerm)) ||
+            ((c.currentDesignation || "") && c.currentDesignation.toLowerCase().includes(searchTerm))
         );
     }
 
     currentInboxQueue = candidates; // Store for navigation
 
-    // Update Counts (Counts should reflect folder size without search filter for context)
+    // Update Counts
     document.getElementById('count-all').innerText = cachedTalentPool.filter(c => c.jobId === currentInboxJobId).length;
     document.getElementById('count-new').innerText = cachedTalentPool.filter(c => c.jobId === currentInboxJobId && c.isNew).length;
-    document.getElementById('count-shortlisted').innerText = cachedCandidates.filter(c => c.jobId === currentInboxJobId && c.stage !== 'REJECTED').length;
-    document.getElementById('count-rejected').innerText = cachedCandidates.filter(c => c.jobId === currentInboxJobId && c.stage === 'REJECTED').length;
+    document.getElementById('count-shortlisted').innerText = shortlistedCandidates.length;
+    document.getElementById('count-rejected').innerText = rejectedCandidates.length;
 
     if (candidates.length === 0) {
         listContainer.innerHTML = `
@@ -4775,48 +4902,18 @@ window.renderInboxCandidates = () => {
 };
 
 window.moveToPipeline = async (candId) => {
-    // Both shortlisted and rejected might be in candId. If it's a new or talent pool candidate
-    // we need to move it. If it's already in candidates, we just update it.
-    let isTalentPool = true;
-    let c = cachedTalentPool.find(x => x.id === candId);
-
-    if (!c) {
-        c = cachedCandidates.find(x => x.id === candId);
-        isTalentPool = false;
-    }
-
+    const c = cachedCandidates.find(x => x.id === candId);
     if (!c) return;
 
     try {
-        if (isTalentPool) {
-            // Move from talentpool to candidates
-            const destData = { ...c };
-            delete destData.id; // don't carry the raw ID over to fields
-
-            destData.inTalentPool = false; // legacy flag kept for safety
-            destData.isNew = false;
-            destData.stage = 'Screening';
-            destData.updatedAt = serverTimestamp();
-
-            // Add to Candidates
-            await addDoc(collection(db, 'candidates'), destData);
-
-            // Remove from Talent Pool
-            await deleteDoc(doc(db, 'talentpool', candId));
-
-            showToast(`Candidate ${c.name} moved to Screening pipeline.`);
-        } else {
-            // Already in candidates (maybe from rejected folder being shortlisted again)
-            const docRef = doc(db, 'candidates', candId);
-            await updateDoc(docRef, {
-                inTalentPool: false,
-                isNew: false,
-                stage: 'Screening',
-                updatedAt: serverTimestamp()
-            });
-            showToast(`Candidate ${c.name} moved to Screening pipeline.`);
-        }
-        // local update will happen via onSnapshot
+        const docRef = doc(db, 'candidates', candId);
+        await updateDoc(docRef, {
+            inTalentPool: false,
+            isNew: false,
+            stage: 'Screening',
+            updatedAt: serverTimestamp()
+        });
+        showToast(`Candidate ${c.name} moved to Screening pipeline.`);
     } catch (error) {
         console.error("Error moving to pipeline:", error);
         showToast("Failed to move candidate.", "error");
@@ -4833,64 +4930,20 @@ window.bulkInboxAction = async (action) => {
         showToast(`Processing ${selected.length} candidates...`);
 
         const promises = selected.map(async (id) => {
-            let isTalentPool = true;
-            let c = cachedTalentPool.find(x => x.id === id);
-
-            if (!c) {
-                c = cachedCandidates.find(x => x.id === id);
-                isTalentPool = false;
-            }
-
+            const c = cachedCandidates.find(x => x.id === id);
             if (!c) return Promise.resolve();
 
-            if (isShortlist) {
-                if (isTalentPool) {
-                    const destData = { ...c };
-                    delete destData.id;
-                    destData.inTalentPool = false;
-                    destData.isNew = false;
-                    destData.stage = 'Screening';
-                    destData.updatedAt = serverTimestamp();
-
-                    await addDoc(collection(db, 'candidates'), destData);
-                    return deleteDoc(doc(db, 'talentpool', id));
-                } else {
-                    return updateDoc(doc(db, 'candidates', id), {
-                        inTalentPool: false,
-                        isNew: false,
-                        stage: 'Screening',
-                        updatedAt: serverTimestamp()
-                    });
-                }
-            } else {
-                // REJECT ACTION
-                // If rejecting from Talent Pool, we keep them in Talent pool but change stage, OR move to candidates as REJECTED. 
-                // Let's move them to candidates as REJECTED to keep Talent Pool clean.
-                if (isTalentPool) {
-                    const destData = { ...c };
-                    delete destData.id;
-                    destData.inTalentPool = false;
-                    destData.isNew = false;
-                    destData.stage = 'REJECTED';
-                    destData.updatedAt = serverTimestamp();
-
-                    await addDoc(collection(db, 'candidates'), destData);
-                    return deleteDoc(doc(db, 'talentpool', id));
-                } else {
-                    return updateDoc(doc(db, 'candidates', id), {
-                        inTalentPool: false,
-                        isNew: false,
-                        stage: 'REJECTED',
-                        updatedAt: serverTimestamp()
-                    });
-                }
-            }
+            return updateDoc(doc(db, 'candidates', id), {
+                inTalentPool: false,
+                isNew: false,
+                stage: isShortlist ? 'Screening' : 'REJECTED',
+                updatedAt: serverTimestamp()
+            });
         });
 
         await Promise.all(promises);
         showToast(`Bulk ${isShortlist ? 'shortlisted' : 'rejected'} ${selected.length} candidates.`);
         toggleBulkBar();
-        // Local cache updates happen via onSnapshot
     } catch (err) {
         console.error("Bulk action error:", err);
         showToast("Failed some bulk actions.", "error");
@@ -4957,26 +5010,35 @@ document.getElementById('form-task').onsubmit = async (e) => {
     const fd = new FormData(e.target);
     const taskId = document.getElementById('form-task-id') ? document.getElementById('form-task-id').value : '';
 
+    // Collect Subtasks
+    const subtaskItems = document.querySelectorAll('#task-subtasks-container .subtask-item');
+    const subtasks = Array.from(subtaskItems).map(item => ({
+        text: item.querySelector('.task-subtask-text').value,
+        done: item.querySelector('.task-subtask-check').checked
+    })).filter(s => s.text.trim());
+
+    const taskData = {
+        title: fd.get('title'),
+        description: fd.get('description') || '',
+        priority: fd.get('priority'),
+        dueDate: fd.get('dueDate') || '',
+        tags: fd.get('tags') || '',
+        subtasks: subtasks,
+        updatedAt: serverTimestamp()
+    };
+
     try {
         if (taskId) {
-            await updateDoc(doc(db, "tasks", taskId), {
-                title: fd.get('title'),
-                priority: fd.get('priority'),
-                dueDate: fd.get('dueDate')
-            });
+            await updateDoc(doc(db, "tasks", taskId), taskData);
             showToast("Task Updated");
         } else {
-            await addDoc(collection(db, "tasks"), {
-                title: fd.get('title'),
-                priority: fd.get('priority'),
-                dueDate: fd.get('dueDate'),
-                status: 'todo',
-                createdAt: serverTimestamp()
-            });
+            taskData.status = 'todo';
+            taskData.createdAt = serverTimestamp();
+            await addDoc(collection(db, "tasks"), taskData);
             showToast("Task Created");
         }
         closeModal('modal-task');
-    } catch (e) { showError("Failed"); }
+    } catch (e) { showError("Failed to save task"); }
 };
 
 

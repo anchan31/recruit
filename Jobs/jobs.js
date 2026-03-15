@@ -1026,7 +1026,8 @@ form.addEventListener('submit', async (e) => {
             whyChangeJob: data.whyChangeJob || "",
 
             source: data.source || "Job Portal",
-            status: "Sourced",
+            status: "Applied",
+            stage: "Applied",
             inTalentPool: true,
             isNew: true,
             resumeUrl: resumeUrl,
@@ -1035,8 +1036,8 @@ form.addEventListener('submit', async (e) => {
             updatedAt: serverTimestamp()
         };
 
-        // Save to Firestore (Talent Pool Inbox)
-        await addDoc(collection(db, 'talentpool'), candidateData);
+        // Save to Firestore (Unified Candidates Collection)
+        await addDoc(collection(db, 'candidates'), candidateData);
 
         // Show Success Message
         formContainer.classList.add('hidden');
