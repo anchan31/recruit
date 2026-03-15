@@ -2,49 +2,52 @@
 
         /* ===================== CSS VARIABLES ===================== */
         :root {
-            --bg-primary: #f1f5f9;
+            --bg-primary: #f8fafc; /* slightly lighter for cleaner feel */
             --bg-secondary: #ffffff;
-            --bg-tertiary: #f8fafc;
+            --bg-tertiary: #f1f5f9;
             --text-primary: #0f172a;
-            --text-secondary: #475569;
-            --text-muted: #94a3b8;
+            --text-secondary: #334155;
+            --text-muted: #64748b;
             --border-color: #e2e8f0;
-            --sidebar-bg: linear-gradient(160deg, #eff6ff 0%, #f8fafc 100%);
-            --header-bg: rgba(255, 255, 255, 0.9);
-            --accent: #3b82f6;
-            --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 8px 24px rgba(0, 0, 0, 0.06);
+            --sidebar-bg: linear-gradient(160deg, #f8fafc 0%, #ffffff 100%);
+            --header-bg: rgba(255, 255, 255, 0.7); /* more translucent */
+            --accent: #2563eb;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 10px 30px -5px rgba(0, 0, 0, 0.08); /* softer, larger shadow */
             --input-bg: #ffffff;
             --input-border: #cbd5e1;
-            --input-focus: #3b82f6;
+            --input-focus: #2563eb;
             --row-hover: #f8fafc;
-            --stripe: #f1f5f9;
+            --stripe: #f8fafc;
             --scrollbar: #cbd5e1;
+            --shadow-colored: 0 10px 25px -5px rgba(37, 99, 235, 0.25);
         }
 
         .dark {
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --bg-tertiary: #172033;
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --text-muted: #475569;
-            --border-color: #263348;
-            --sidebar-bg: linear-gradient(160deg, #0d1628 0%, #1a2640 100%);
-            --header-bg: rgba(13, 22, 40, 0.92);
-            --accent: #60a5fa;
-            --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
-            --input-bg: #1e293b;
+            --bg-primary: #0b1120; /* deeper dark mode */
+            --bg-secondary: #111827;
+            --bg-tertiary: #1f2937;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #64748b;
+            --border-color: #334155;
+            --sidebar-bg: linear-gradient(160deg, #0b1120 0%, #111827 100%);
+            --header-bg: rgba(17, 24, 39, 0.7);
+            --accent: #3b82f6;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+            --input-bg: #1f2937;
             --input-border: #334155;
-            --input-focus: #60a5fa;
-            --row-hover: #1e293b;
-            --stripe: #172033;
-            --scrollbar: #334155;
+            --input-focus: #3b82f6;
+            --row-hover: #1f2937;
+            --stripe: #111827;
+            --scrollbar: #475569;
+            --shadow-colored: 0 10px 25px -5px rgba(59, 130, 246, 0.25);
         }
 
         /* ===================== BASE ===================== */
         html {
-            font-size: 85%;
-            /* Global reduction for a more compact look */
+            font-size: 90%; /* Bumped up slightly from 85% for better readability */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         * {
@@ -52,11 +55,31 @@
         }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', system-ui, sans-serif;
             background-color: var(--bg-primary);
             color: var(--text-primary);
-            transition: background-color 0.3s ease, color 0.3s ease;
-            line-height: 1.4;
+            transition: background-color 0.4s ease, color 0.4s ease; /* smoother dark mode transition */
+            line-height: 1.5;
+            letter-spacing: -0.01em; /* Apple-like tighter tracking */
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.5);
         }
 
         /* ===================== COMPONENTS ===================== */
@@ -66,7 +89,14 @@
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
             box-shadow: var(--card-shadow);
-            transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); /* smoother Apple-like easing */
+            position: relative;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-colored);
+            border-color: rgba(59, 130, 246, 0.3);
         }
 
         /* Sidebar */
@@ -436,14 +466,66 @@
 
         /* Loader */
         .loader {
-            border-top-color: #3b82f6;
-            animation: spin 1.5s linear infinite;
+            border-top-color: var(--accent);
+            animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
         }
 
         @keyframes spin {
             to {
                 transform: rotate(360deg);
             }
+        }
+
+        /* ----- NEW ANIMATIONS & STAGGERING ----- */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px) scale(0.99);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .animate-fade-up {
+            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        .animate-scale-in {
+            animation: fadeInScale 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        /* Staggered Loading Classes */
+        .stagger-1 { animation-delay: 0.05s; }
+        .stagger-2 { animation-delay: 0.1s; }
+        .stagger-3 { animation-delay: 0.15s; }
+        .stagger-4 { animation-delay: 0.2s; }
+        .stagger-5 { animation-delay: 0.25s; }
+        
+        /* Interactive Elements */
+        .hover-lift {
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .hover-lift:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px -5px rgba(0, 0, 0, 0.08);
+        }
+        
+        .hover-lift:active {
+            transform: translateY(0) scale(0.98);
         }
 
         /* Scrollbar */
@@ -599,6 +681,23 @@
 
         .dark .wa-message-bubble::after {
             border-top-color: #005c4b;
+        }
+
+        /* Modal container */
+        .modal-box {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: var(--text-primary);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border-radius: 1.5rem; /* Smoother corners */
+        }
+        
+        .dark .modal-box {
+            background: rgba(15, 23, 42, 0.90);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
 
         /* Modal form consistent styling */

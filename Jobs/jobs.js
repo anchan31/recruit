@@ -1,29 +1,8 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-    getAuth,
-    GoogleAuthProvider,
-    signInWithPopup,
-    onAuthStateChanged,
-    createUserWithEmailAndPassword,
-    signInWithEmailAndPassword,
-    signOut
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, getDoc, doc, onSnapshot, serverTimestamp, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { 
+    auth, db, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut,
+    collection, addDoc, getDocs, getDoc, doc, onSnapshot, serverTimestamp, query, where
+} from "../firebase_config.js";
 
-// FIREBASE CONFIG
-const firebaseConfig = {
-    apiKey: "AIzaSyDKuFUJyHUl5AIFSFHCg-4S_wadsha6Et4",
-    authDomain: "recruitment-suite-hr.firebaseapp.com",
-    projectId: "recruitment-suite-hr",
-    storageBucket: "recruitment-suite-hr.firebasestorage.app",
-    messagingSenderId: "1049067446272",
-    appId: "1:1049067446272:web:a0eb4e5a9fac1589a8f8e5",
-    measurementId: "G-87FVXXYEP7"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
 
 // CLOUDINARY CONFIG
 const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/drz2jldgj/auto/upload';

@@ -1,24 +1,8 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-    getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, getDoc, doc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, setDoc, query, where, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { 
+    auth, db, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
+    collection, addDoc, getDocs, getDoc, doc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, setDoc, query, where, orderBy, writeBatch
+} from "./firebase_config.js";
 
-// --- FIREBASE CONFIG ---
-const firebaseConfig = {
-    apiKey: "AIzaSyDKuFUJyHUl5AIFSFHCg-4S_wadsha6Et4",
-    authDomain: "recruitment-suite-hr.firebaseapp.com",
-    projectId: "recruitment-suite-hr",
-    storageBucket: "recruitment-suite-hr.firebasestorage.app",
-    messagingSenderId: "1049067446272",
-    appId: "1:1049067446272:web:a0eb4e5a9fac1589a8f8e5",
-    measurementId: "G-87FVXXYEP7"
-};
-
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
 
 // --- STATE MANAGEMENT ---
 let currentUser = null;
@@ -416,7 +400,6 @@ function setupRealtimeListeners() {
         renderJobs();
         renderCandidates();
         updateDropdowns();
-        if (typeof renderOrganogram === 'function') renderOrganogram();
     });
 
     // Listen for Jobs
@@ -1269,10 +1252,10 @@ function updateDashboard() {
     const tpEl = document.getElementById('stat-talent-pool');
     if (tpEl) tpEl.innerText = talentPool;
 
-    // Headcount (Hired candidates)
-    const headcount = cachedCandidates.filter(c => c.stage === 'Hired').length;
-    const hcEl = document.getElementById('stat-headcount');
-    if (hcEl) hcEl.innerText = headcount;
+    // Total Hires (Hired candidates)
+    const totalHires = cachedCandidates.filter(c => c.stage === 'Hired').length;
+    const thEl = document.getElementById('stat-total-hires');
+    if (thEl) thEl.innerText = totalHires;
 
     // Open Offers: now computed from cachedOffers below (after renderDashboardOffers call)
 
@@ -1588,15 +1571,16 @@ function renderUpcomingInterviews() {
         return;
     }
 
-    container.innerHTML = futureInts.slice(0, 10).map(i => {
+    container.innerHTML = futureInts.slice(0, 10).map((i, index) => {
         const cand = cachedCandidates.find(c => c.id === i.candidateId);
         const job = cand ? cachedJobs.find(j => j.id === cand.jobId) : null;
         const dt = new Date(i.dateTime);
         const timeStr = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const dateStr = dt.toLocaleDateString([], { day: 'numeric', month: 'short' });
+        const staggerClass = index < 6 ? `animate-fade-up stagger-${(index % 5) + 1}` : '';
 
         return `
-            <div class="p-4 rounded-xl bg-white dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 hover:border-blue-500/30 transition-colors group">
+            <div class="p-4 rounded-xl bg-white dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 hover:border-blue-500/30 transition-colors group hover-lift ${staggerClass}">
                 <div class="flex justify-between items-start">
                     <div class="flex items-center gap-3">
                         <div class="flex flex-col items-center justify-center w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold">
@@ -1633,10 +1617,12 @@ function renderDashboardTasks() {
         return;
     }
 
-    container.innerHTML = pending.slice(0, 5).map(t => {
+    container.innerHTML = pending.slice(0, 5).map((t, index) => {
         const priorityClass = { 'Low': 'text-slate-400', 'Medium': 'text-blue-500', 'High': 'text-orange-500', 'Urgent': 'text-red-500' }[t.priority] || 'text-slate-400';
+        const staggerClass = index < 5 ? `animate-fade-up stagger-${index + 1}` : '';
+
         return `
-            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/20 border border-slate-100 dark:border-slate-800 hover:border-blue-500/20 transition-all group">
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/20 border border-slate-100 dark:border-slate-800 hover:border-blue-500/20 transition-all group hover-lift ${staggerClass}">
                 <div class="flex items-start gap-3">
                     <div class="mt-1"><i class="fas fa-circle ${priorityClass} text-[6px]"></i></div>
                     <div class="flex-1">
@@ -3498,7 +3484,6 @@ window.showSection = (sectionId) => {
         'talentpool': 'Talent Pool',
         'interviews': 'Interviews',
         'offers': 'Offer Management',
-        'organogram': 'Corporate Organogram',
         'messaging': 'Communications',
         'reports': 'Reports & Data Export',
         'portalsettings': 'Portal Customization'
@@ -3533,9 +3518,6 @@ window.showSection = (sectionId) => {
             break;
         case 'offers':
             renderOffers();
-            break;
-        case 'organogram':
-            renderOrganogram();
             break;
         case 'messaging':
             renderWaCandidatesChecklist();
@@ -4531,216 +4513,6 @@ window.showCompanyProfile = (id) => {
             `;
 };
 
-window.renderOrganogram = () => {
-    const container = document.getElementById('organogram-container');
-    if (!container) return;
-
-    const companySelect = document.getElementById('organogram-company-filter');
-    const selectedCompanyIdBeforeRender = companySelect ? companySelect.value : 'all';
-
-    // Refresh company select options to prevent duplicates
-    if (companySelect) {
-        // Remove 'All Companies' and only show individual created companies
-        companySelect.innerHTML = '';
-        if (cachedCompanies.length > 0) {
-            cachedCompanies.forEach((c, idx) => {
-                const opt = document.createElement('option');
-                opt.value = c.id;
-                opt.innerText = c.name || 'Unnamed Company';
-                if (c.id === selectedCompanyIdBeforeRender || (selectedCompanyIdBeforeRender === 'all' && idx === 0)) {
-                    opt.selected = true;
-                }
-                companySelect.appendChild(opt);
-            });
-        }
-    }
-
-    // Default to the first company if "all" was selected but no longer exists
-    const selectedCompanyId = (companySelect && companySelect.value) ? companySelect.value : (cachedCompanies.length > 0 ? cachedCompanies[0].id : null);
-
-    if (!selectedCompanyId) {
-        container.innerHTML = `<div class="py-20 text-center text-slate-400 font-medium italic">Please select a company to view its organogram.</div>`;
-        return;
-    }
-
-    // Determine which companies to render (always specific company now)
-    const companiesToRender = cachedCompanies.filter(c => c.id === selectedCompanyId);
-
-    const hired = cachedCandidates.filter(c => c.stage === 'Hired');
-
-    if (companiesToRender.length === 0) {
-        container.innerHTML = `<div class="py-20 text-center text-slate-400">No company data available.</div>`;
-        return;
-    }
-
-    // Build overall HTML
-    let html = `<div class="flex flex-col items-center gap-16 w-full py-4 overflow-visible">`;
-
-    // We can render each company as a separate root tree, or if just one, a single root.
-    companiesToRender.forEach(company => {
-        // Find jobs for this company
-        const companyJobs = cachedJobs.filter(j => j.companyId === company.id);
-        const depts = [...new Set(companyJobs.map(j => j.department).filter(Boolean))];
-
-        // Find hired candidates for this company
-        const companyJobIds = new Set(companyJobs.map(j => j.id));
-        const companyHired = hired.filter(c => companyJobIds.has(c.jobId));
-
-        if (depts.length === 0 && companyHired.length === 0) {
-            // Optional: skip empty companies if viewing 'all'
-            if (selectedCompanyId === 'all' && companiesToRender.length > 1) return;
-        }
-
-        const hierarchy = {};
-        depts.forEach(d => {
-            hierarchy[d] = {};
-            const jobsInDept = companyJobs.filter(j => j.department === d);
-            jobsInDept.forEach(j => {
-                hierarchy[d][j.title] = companyHired.filter(c => c.jobId === j.id);
-            });
-        });
-
-        const rootName = company.name || "Unnamed Company";
-
-        html += `
-            <div class="flex flex-col items-start lg:items-center w-full mb-16 relative min-w-max px-12 mx-auto">
-                <!-- Root node (Company) -->
-                <div class="flex flex-col items-center group relative z-10">
-                    <div class="px-8 py-4 bg-blue-600 text-white rounded-2xl shadow-xl font-bold text-lg border-2 border-blue-400/50 group-hover:scale-105 transition-transform text-center min-w-[200px]">
-                        ${rootName}
-                    </div>
-                </div>
-
-                ${depts.length > 0 ? `
-                <!-- Connecting Line from Company down to Horizontal Line -->
-                <div class="w-px h-8 bg-blue-300 dark:bg-slate-600"></div>
-
-                <!-- Departments Level -->
-                <div class="flex flex-nowrap justify-start lg:justify-center items-start w-full mt-0 min-w-max px-12 mx-auto">
-                    
-                    ${Object.keys(hierarchy).map((dept, index, array) => {
-            // Logic for the horizontal connecting top border
-            let borderClasses = "border-t-2 border-blue-300 dark:border-slate-600 ";
-            if (array.length === 1) borderClasses = "border-t-0 "; // Only 1, no horizontal line needed
-            else if (index === 0) borderClasses += "rounded-tl-none border-l-0 w-1/2 ml-auto "; // First item
-            else if (index === array.length - 1) borderClasses += "rounded-tr-none border-r-0 w-1/2 mr-auto "; // Last item
-            else borderClasses += "w-full "; // Middle items
-
-            return `
-                        <div class="flex flex-col items-center relative z-10 flex-1 min-w-[250px] w-full max-w-[300px]">
-                            
-                            <!-- Top Horizontal Line Section -->
-                            <div class="${borderClasses} h-8 flex justify-center w-full">
-                                <!-- Top Center Vertical Drop Down Line -->
-                                <div class="w-px h-8 bg-blue-300 dark:bg-slate-600"></div>
-                            </div>
-                            
-                            <!-- Dept Node -->
-                            <div class="px-6 py-3 bg-slate-800 dark:bg-slate-700 text-white rounded-xl shadow-lg font-bold text-sm mb-6 border border-slate-600 text-center w-[90%] max-w-[250px] truncate relative z-10 m-0">
-                                ${dept}
-                            </div>
-                            
-                            <div class="space-y-4 w-full flex flex-col items-center relative mt-6">
-                                ${Object.keys(hierarchy[dept]).map((role, idx) => {
-                const cands = hierarchy[dept][role];
-                return `
-                                        <div class="flex flex-col items-center w-full relative">
-                                            <!-- Vertical line from Dept/Previous Role to Role -->
-                                            ${idx === 0
-                        ? `<div class="w-px h-6 bg-blue-300 dark:bg-slate-600 absolute top-[-24px]"></div>`
-                        : `<div class="w-px h-4 bg-blue-300 dark:bg-slate-600 absolute top-[-16px]"></div>`
-                    }
-                                            
-                                            <!-- Role Node -->
-                                            <div class="px-4 py-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-xl w-[90%] max-w-[250px] text-center shadow-sm hover:shadow-md transition-shadow relative z-10">
-                                                <div class="text-[11px] uppercase font-bold text-blue-600 dark:text-blue-400 mb-2 border-b border-blue-100 dark:border-blue-800/50 pb-1">${role}</div>
-                                                <div class="flex flex-col gap-1.5 pt-1">
-                                                    ${cands.length > 0 ? cands.map(c => `
-                                                        <div class="text-[11px] font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 py-1.5 px-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow flex items-center justify-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors" onclick="showCandidateProfile('${c.id}')">
-                                                            <i class="fas fa-user-circle text-blue-500 text-sm"></i> 
-                                                            <span class="truncate max-w-[150px]">${c.name}</span>
-                                                        </div>
-                                                    `).join('') : '<div class="text-[10px] text-slate-400 italic py-1 bg-slate-50 dark:bg-slate-800/30 rounded border border-dashed border-slate-200 dark:border-slate-700">Vacant Position</div>'}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    `;
-            }).join('')}
-                            </div>
-                        </div>
-                    `;
-        }).join('')}
-                </div>
-                ` : `<div class="mt-4 text-slate-400 italic text-sm">No departments or jobs defined</div>`}
-            </div>
-        `;
-    });
-
-    html += `</div>`;
-
-    if (html === `<div class="flex flex-col items-center gap-16 w-full py-4 overflow-visible"></div>`) {
-        html = `<div class="py-20 text-center text-slate-400">No organizational data available yet. Please ensure you have jobs assigned to companies and hired candidates.</div>`;
-    }
-
-    container.innerHTML = html;
-
-    // SYNC: Ensure the custom dropdown UI reflects the choices after repopulating the native select
-    try { initCustomSelects(); } catch (e) { console.warn('Organogram dropdown sync failed', e); }
-};
-
-// Export to PDF function
-window.exportOrganogramPDF = () => {
-    const element = document.getElementById('organogram-container');
-    if (!element) return;
-
-    // Temporarily adjust layout for capture
-    const originalClasses = element.className;
-    element.classList.remove('overflow-x-auto');
-    element.style.width = 'max-content';
-    element.style.padding = '40px';
-    element.style.backgroundColor = document.documentElement.classList.contains('dark') ? '#0f172a' : '#ffffff';
-
-    // Calculate dimensions for ONE page fit
-    // We use px as the unit to match the element's scroll dimensions exactly
-    const widthPx = element.scrollWidth + 80;
-    const heightPx = element.scrollHeight + 80;
-
-    // Scale for high quality (2x internal res)
-    const scale = 2;
-
-    const opt = {
-        margin: 0,
-        filename: 'Corporate_Organogram.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: {
-            scale: scale,
-            useCORS: true,
-            logging: false,
-            width: widthPx,
-            windowWidth: widthPx
-        },
-        // IMPORTANT: Use [width, height] in px to force the PDF into exactly one page
-        jsPDF: { unit: 'px', format: [widthPx, heightPx], orientation: widthPx > heightPx ? 'l' : 'p' }
-    };
-
-    showToast('Preparing one-page PDF...', 'info');
-
-    html2pdf().set(opt).from(element).save().then(() => {
-        // Restore styling
-        element.className = originalClasses;
-        element.style.width = '';
-        element.style.padding = '';
-        element.style.backgroundColor = '';
-        showToast('One-page PDF Exported Successfully!', 'success');
-    }).catch(err => {
-        console.error('PDF Export Error:', err);
-        showToast('Export failed. Check console.', 'error');
-        element.className = originalClasses;
-        element.style.width = '';
-        element.style.padding = '';
-        element.style.backgroundColor = '';
-    });
-};
 
 let currentInboxJobId = null;
 let currentInboxFilter = 'all';
@@ -4932,14 +4704,15 @@ window.renderInboxCandidates = () => {
         return;
     }
 
-    listContainer.innerHTML = candidates.map(c => {
+    listContainer.innerHTML = candidates.map((c, index) => {
         const score = calculateMatchScore(c, job);
         const skillsArr = (c.skills || '').split(',').map(s => s.trim()).filter(s => s !== '');
+        const staggerClass = index < 10 ? `animate-fade-up stagger-${(index % 5) + 1}` : '';
 
         return `
-                    <div class="group bg-white dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-900 transition-all flex flex-col md:flex-row gap-5 relative">
+                    <div class="group bg-white dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-900 transition-all flex flex-col md:flex-row gap-5 relative hover-lift ${staggerClass}">
                         <div class="absolute top-4 left-3">
-                            <input type="checkbox" name="inbox-candidate-check" value="${c.id}" class="w-4 h-4 rounded border-slate-300 text-blue-600 transition-all">
+                            <input type="checkbox" name="inbox-candidate-check" value="${c.id}" class="w-4 h-4 rounded border-slate-300 text-blue-600 transition-all cursor-pointer">
                         </div>
                         
                         <!-- Main Content -->
@@ -4966,7 +4739,7 @@ window.renderInboxCandidates = () => {
                             <!-- Skills Display -->
                             ${skillsArr.length > 0 ? `
                             <div class="flex flex-wrap gap-1.5 mb-4">
-                                ${skillsArr.slice(0, 6).map(s => `<span class="px-2 py-0.5 bg-slate-100/50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded text-[10px] border border-slate-200/50 dark:border-slate-700/50 font-medium">${s}</span>`).join('')}
+                                ${skillsArr.slice(0, 6).map(s => `<span class="px-2 py-0.5 bg-slate-100/50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded text-[10px] border border-slate-200/50 dark:border-slate-700/50 font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition">${s}</span>`).join('')}
                                 ${skillsArr.length > 6 ? `<span class="text-[10px] text-slate-400 font-medium ml-1">+${skillsArr.length - 6} more</span>` : ''}
                             </div>
                             ` : ''}
@@ -4993,8 +4766,8 @@ window.renderInboxCandidates = () => {
                         
                         <!-- Actions -->
                         <div class="flex flex-row md:flex-col gap-2 justify-center border-l md:border-l border-slate-50 dark:border-slate-800 pl-0 md:pl-5">
-                            <button onclick="showCandidateProfile('${c.id}')" class="flex-1 md:flex-none px-4 py-2 bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 rounded-xl text-xs font-bold hover:bg-slate-100 transition">View</button>
-                            <button onclick="moveToPipeline('${c.id}')" class="flex-1 md:flex-none px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20">Shortlist</button>
+                            <button onclick="showCandidateProfile('${c.id}')" class="flex-1 md:flex-none px-4 py-2 bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 rounded-xl text-xs font-bold hover:bg-slate-100 transition hover-lift">View</button>
+                            <button onclick="moveToPipeline('${c.id}')" class="flex-1 md:flex-none px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20 hover-lift">Shortlist</button>
                         </div>
                     </div>
                 `;
