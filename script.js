@@ -32,6 +32,8 @@ let cachedTalentPool = [];
 let whatsappSelectedCandidates = new Set();
 let globalSearchQuery = '';
 let candidateView = 'table'; // 'table' or 'cards'
+// Track initial Firestore loads so loader stays visible until data is ready
+let pendingInitialLoads = 0;
 
 // --- SESSION TIMEOUT CONFIG ---
 const INACTIVITY_TIMEOUT = 45 * 60 * 1000; // 45 minutes
@@ -206,6 +208,7 @@ function renderCurrentSection() {
     renderCompanies();
     renderJobs();
     renderCandidates();
+    renderTasks();
     renderWaCandidatesChecklist();
     renderInterviews();
     if (typeof renderTalentPool === 'function') renderTalentPool();
@@ -381,6 +384,12 @@ onAuthStateChanged(auth, async (user) => {
         document.getElementById('auth-container').classList.add('hidden');
         document.getElementById('main-app').classList.remove('hidden');
 
+        // Ensure FAB is only visible after successful login
+        const fab = document.getElementById('fab-container');
+        if (fab) {
+            fab.style.display = 'flex';
+        }
+
 
         // Update navbar profile
         const navEmail = document.getElementById('nav-user-email');
@@ -402,6 +411,11 @@ onAuthStateChanged(auth, async (user) => {
         stopIdleTimer();
         document.getElementById('auth-container').classList.remove('hidden');
         document.getElementById('main-app').classList.add('hidden');
+        // Hide FAB when logged out
+        const fab = document.getElementById('fab-container');
+        if (fab) {
+            fab.style.display = 'none';
+        }
         const modal = document.getElementById('modal-inactivity');
         if (modal) modal.classList.add('hidden');
     }
@@ -409,7 +423,11 @@ onAuthStateChanged(auth, async (user) => {
 
 // --- CORE DATA FUNCTIONS ---
 async function initApp() {
+    // When app starts after login, show loader until first data snapshots arrive
+    pendingInitialLoads = 7; // companies, jobs, candidates, interviews, offers, waTemplates, tasks
+    showLoader();
     setupRealtimeListeners();
+    showSection('dashboard');
 }
 
 function setupRealtimeListeners() {
@@ -421,6 +439,10 @@ function setupRealtimeListeners() {
         renderJobs();
         renderCandidates();
         updateDropdowns();
+        if (pendingInitialLoads > 0) {
+            pendingInitialLoads--;
+            if (pendingInitialLoads === 0) hideLoader();
+        }
     });
 
     // Listen for Jobs
@@ -433,6 +455,10 @@ function setupRealtimeListeners() {
         updateDropdowns();
         updateDashboard();
         if (typeof renderTalentPool === 'function') renderTalentPool();
+        if (pendingInitialLoads > 0) {
+            pendingInitialLoads--;
+            if (pendingInitialLoads === 0) hideLoader();
+        }
     });
 
     // Listen for Candidates (Unified)
@@ -449,6 +475,10 @@ function setupRealtimeListeners() {
         if (typeof renderTalentPool === 'function') renderTalentPool();
         if (typeof updateTalentPoolBadge === 'function') updateTalentPoolBadge();
         if (typeof renderInboxCandidates === 'function' && currentInboxJobId) renderInboxCandidates();
+        if (pendingInitialLoads > 0) {
+            pendingInitialLoads--;
+            if (pendingInitialLoads === 0) hideLoader();
+        }
     });
 
     // Listen for Interviews
@@ -457,6 +487,10 @@ function setupRealtimeListeners() {
         cachedInterviews = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderInterviews();
         updateDashboard();
+        if (pendingInitialLoads > 0) {
+            pendingInitialLoads--;
+            if (pendingInitialLoads === 0) hideLoader();
+        }
     });
 
     // Listen for Offers
@@ -465,6 +499,10 @@ function setupRealtimeListeners() {
         cachedOffers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderOffers();
         updateDashboard();
+        if (pendingInitialLoads > 0) {
+            pendingInitialLoads--;
+            if (pendingInitialLoads === 0) hideLoader();
+        }
     });
 
     // Listen for WhatsApp Templates
@@ -473,6 +511,10 @@ function setupRealtimeListeners() {
         cachedWaTemplates = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderWaTemplates();
         updateWaDropdowns();
+        if (pendingInitialLoads > 0) {
+            pendingInitialLoads--;
+            if (pendingInitialLoads === 0) hideLoader();
+        }
     });
 
     // Listen for Tasks
@@ -483,6 +525,10 @@ function setupRealtimeListeners() {
             renderTasks();
         }
         updateDashboard();
+        if (pendingInitialLoads > 0) {
+            pendingInitialLoads--;
+            if (pendingInitialLoads === 0) hideLoader();
+        }
     });
 }
 
@@ -3509,74 +3555,241 @@ initApp = async () => {
     }
 };
 
-// --- UTILS ---
-window.showSection = (sectionId) => {
-    document.querySelectorAll('#content-area > div').forEach(div => div.classList.add('hidden'));
-    const sectionEl = document.getElementById(`section-${sectionId}`);
-    if (sectionEl) sectionEl.classList.remove('hidden');
-
-    document.querySelectorAll('.sidebar-btn').forEach(btn => btn.classList.remove('sidebar-item-active'));
-    const navBtn = document.getElementById(`btn-nav-${sectionId}`);
-    if (navBtn) navBtn.classList.add('sidebar-item-active');
-
-    const titles = {
-        'dashboard': 'Dashboard',
-        'tasks': 'HR Task Board',
-        'companies': 'Companies',
-        'jobs': 'Job Openings',
-        'candidates': 'Candidates',
-        'talentpool': 'Talent Pool',
-        'interviews': 'Interviews',
-        'offers': 'Offer Management',
-        'messaging': 'Communications',
-        'reports': 'Reports & Data Export',
-        'portalsettings': 'Portal Customization'
-    };
-
-    const titleEl = document.getElementById('section-title');
-    if (titleEl) titleEl.innerText = titles[sectionId] || (sectionId.charAt(0).toUpperCase() + sectionId.slice(1));
-
-    // Ensure the visible section is rendered/refreshed so filters take effect
-    switch (sectionId) {
-        case 'dashboard':
-            updateDashboard();
-            break;
-        case 'tasks':
-            renderTasks();
-            break;
-        case 'companies':
-            renderCompanies();
-            break;
-        case 'jobs':
-            renderJobs();
-            break;
-        case 'candidates':
-            renderCandidates();
-            renderWaCandidatesChecklist();
-            break;
-        case 'talentpool':
-            renderTalentPool();
-            break;
-        case 'interviews':
-            renderInterviews();
-            break;
-        case 'offers':
-            renderOffers();
-            break;
-        case 'messaging':
-            renderWaCandidatesChecklist();
-            previewSelectedTemplate();
-            break;
-        case 'reports':
-            updateDashboard();
-            break;
-        case 'portalsettings':
-            loadPortalSettings();
-            break;
-        default:
-            break;
+// ─── UTILS ───
+window.showLoader = () => {
+    const loader = document.getElementById('app-loader');
+    if (loader) {
+        // Cancel any pending hide
+        if (loader._hideTimeout) {
+            clearTimeout(loader._hideTimeout);
+            loader._hideTimeout = null;
+        }
+        loader.classList.remove('hidden');
+        // Force reflow so opacity transition always plays
+        // eslint-disable-next-line no-unused-expressions
+        loader.offsetHeight;
+        loader.style.opacity = '1';
+        loader.style.pointerEvents = 'auto';
     }
 };
+
+window.hideLoader = () => {
+    const loader = document.getElementById('app-loader');
+    if (loader) {
+        loader.style.opacity = '0';
+        loader.style.pointerEvents = 'none';
+        // Clear any existing timeout to avoid overlaps if called rapidly
+        if (loader._hideTimeout) clearTimeout(loader._hideTimeout);
+        loader._hideTimeout = setTimeout(() => {
+            loader.classList.add('hidden');
+            loader._hideTimeout = null;
+        }, 320);
+    }
+};
+
+window.showSection = async (sectionId) => {
+    // For normal navigation, only show the quick loader if initial data is already loaded.
+    if (pendingInitialLoads === 0) {
+        showLoader();
+    }
+    
+    try {
+        // Reduced delay for snappier feel
+        await new Promise(resolve => setTimeout(resolve, 200));
+        document.querySelectorAll('#content-area > div').forEach(div => div.classList.add('hidden'));
+        const sectionEl = document.getElementById(`section-${sectionId}`);
+        if (sectionEl) sectionEl.classList.remove('hidden');
+
+        document.querySelectorAll('.sidebar-btn').forEach(btn => btn.classList.remove('sidebar-item-active'));
+        const navBtn = document.getElementById(`btn-nav-${sectionId}`);
+        if (navBtn) navBtn.classList.add('sidebar-item-active');
+
+        const sectionInfo = {
+            'dashboard': { 
+                title: 'Dashboard', 
+                subtitle: 'Quick overview of your recruitment activities',
+                actions: [
+                    { label: 'Add Candidate', icon: 'fa-user-plus', color: 'bg-blue-600', onclick: "openModal('modal-candidate')" },
+                    { label: 'Schedule Interview', icon: 'fa-calendar-plus', color: 'bg-purple-600', onclick: "openAddInterviewModal()" },
+                    { label: 'New Task', icon: 'fa-list-check', color: 'bg-orange-500', onclick: "openAddTaskModal()" },
+                    { label: 'Calculator', icon: 'fa-calculator', color: 'bg-slate-700', onclick: "toggleCalculator()" }
+                ]
+            },
+            'tasks': { 
+                title: 'HR Task Board', 
+                subtitle: 'Coordinate your team\'s internal recruitment tasks',
+                actions: [
+                    { label: 'New Task', icon: 'fa-plus', color: 'bg-orange-500', onclick: "openAddTaskModal()" },
+                    { label: 'Calculator', icon: 'fa-calculator', color: 'bg-slate-700', onclick: "toggleCalculator()" }
+                ]
+            },
+            'companies': { 
+                title: 'Companies', 
+                subtitle: 'Manage partner companies and organizational info',
+                actions: [
+                    { label: 'Add Company', icon: 'fa-plus', color: 'bg-blue-600', onclick: "document.getElementById('form-company').reset(); document.getElementById('form-company-id').value = ''; document.getElementById('modal-company-title').innerText = 'Add Company'; openModal('modal-company')" },
+                    { label: 'Calculator', icon: 'fa-calculator', color: 'bg-slate-700', onclick: "toggleCalculator()" }
+                ]
+            },
+            'jobs': { 
+                title: 'Job Management', 
+                subtitle: 'Manage job openings and active listings',
+                actions: [
+                    { label: 'Create Job', icon: 'fa-plus', color: 'bg-blue-600', onclick: "document.getElementById('form-job').reset(); document.getElementById('form-job-id').value = ''; openModal('modal-job')" },
+                    { label: 'Calculator', icon: 'fa-calculator', color: 'bg-slate-700', onclick: "toggleCalculator()" }
+                ]
+            },
+            'candidates': { 
+                title: 'Candidate Database', 
+                subtitle: 'Unified view of all candidate profiles',
+                actions: [
+                    { label: 'Add Candidate', icon: 'fa-user-plus', color: 'bg-blue-600', onclick: "openModal('modal-candidate')" },
+                    { label: 'Calculator', icon: 'fa-calculator', color: 'bg-slate-700', onclick: "toggleCalculator()" }
+                ]
+            },
+            'talentpool': { 
+                title: 'Manage Responses', 
+                subtitle: 'Track candidate responses across open positions',
+                actions: [
+                    { label: 'Post Job', icon: 'fa-plus', color: 'bg-blue-600', onclick: "showSection('jobs')" },
+                    { label: 'Calculator', icon: 'fa-calculator', color: 'bg-slate-700', onclick: "toggleCalculator()" }
+                ]
+            },
+            'interviews': { 
+                title: 'Interview Scheduler', 
+                subtitle: 'Coordinate and track candidate interviews',
+                actions: [
+                    { label: 'Schedule Interview', icon: 'fa-plus', color: 'bg-blue-600', onclick: "openAddInterviewModal()" },
+                    { label: 'Calculator', icon: 'fa-calculator', color: 'bg-slate-700', onclick: "toggleCalculator()" }
+                ]
+            },
+            'offers': { 
+                title: 'Offer Management', 
+                subtitle: 'Track and manage the final lifecycle of selection',
+                actions: [
+                    { label: 'Calculator', icon: 'fa-calculator', color: 'bg-slate-700', onclick: "toggleCalculator()" }
+                ]
+            },
+            'messaging': { 
+                title: 'Communications', 
+                subtitle: 'Automate candidate messaging and templates',
+                actions: [
+                    { label: 'New Template', icon: 'fa-plus', color: 'bg-blue-600', onclick: "document.getElementById('form-wa-template').reset(); document.getElementById('form-wa-template-id').value = ''; document.getElementById('modal-wa-template-title').innerText = 'Create Messaging Template'; openModal('modal-wa-template')" },
+                    { label: 'Calculator', icon: 'fa-calculator', color: 'bg-slate-700', onclick: "toggleCalculator()" }
+                ]
+            },
+            'reports': { 
+                title: 'Reports & Data Export', 
+                subtitle: 'Analyze recruitment performance and export data',
+                actions: [
+                    { label: 'Calculator', icon: 'fa-calculator', color: 'bg-slate-700', onclick: "toggleCalculator()" }
+                ]
+            },
+            'portalsettings': { 
+                title: 'Public Portal Settings', 
+                subtitle: 'Configure how candidates see your career page',
+                actions: [
+                    { label: 'Calculator', icon: 'fa-calculator', color: 'bg-slate-700', onclick: "toggleCalculator()" }
+                ]
+            }
+        };
+
+
+        const info = sectionInfo[sectionId] || { title: (sectionId.charAt(0).toUpperCase() + sectionId.slice(1)), subtitle: '', actions: [] };
+        const titleEl = document.getElementById('section-title');
+        const subtitleEl = document.getElementById('section-subtitle');
+        
+        if (titleEl) titleEl.innerText = info.title;
+        if (subtitleEl) subtitleEl.innerText = info.subtitle;
+
+        // Update FAB
+        updateFAB(info.actions || []);
+
+        // Ensure the visible section is rendered/refreshed so filters take effect
+        switch (sectionId) {
+            case 'dashboard':
+                updateDashboard();
+                break;
+            case 'tasks':
+                renderTasks();
+                break;
+            case 'companies':
+                renderCompanies();
+                break;
+            case 'jobs':
+                renderJobs();
+                break;
+            case 'candidates':
+                renderCandidates();
+                renderWaCandidatesChecklist();
+                break;
+            case 'talentpool':
+                renderTalentPool();
+                break;
+            case 'interviews':
+                renderInterviews();
+                break;
+            case 'offers':
+                renderOffers();
+                break;
+            case 'messaging':
+                renderWaCandidatesChecklist();
+                previewSelectedTemplate();
+                break;
+            case 'reports':
+                updateDashboard();
+                break;
+            case 'portalsettings':
+                loadPortalSettings();
+                break;
+            default:
+                break;
+        }
+    } catch (error) {
+        console.error("Error showing section:", error);
+    } finally {
+        // If initial Firestore loads are still running, let them decide when to hide the loader.
+        if (pendingInitialLoads === 0) {
+            hideLoader();
+        }
+    }
+};
+
+
+window.toggleFAB = () => {
+    const mainBtn = document.getElementById('fab-main');
+    const menuEl = document.getElementById('fab-menu');
+    if (mainBtn && menuEl) {
+        mainBtn.classList.toggle('active');
+        menuEl.classList.toggle('active');
+    }
+};
+
+function updateFAB(actions) {
+    const fabContainer = document.getElementById('fab-container');
+    const fabMenu = document.getElementById('fab-menu');
+    const fabMain = document.getElementById('fab-main');
+    
+    if (!fabContainer || !fabMenu || !fabMain) return;
+
+    if (!actions || actions.length === 0) {
+        fabContainer.classList.add('hidden');
+        return;
+    }
+
+    fabContainer.classList.remove('hidden');
+    fabMain.classList.remove('active');
+    fabMenu.classList.remove('active');
+
+    fabMenu.innerHTML = actions.map((action, index) => `
+        <div class="fab-item" onclick="${action.onclick}; toggleFAB();" style="transition-delay: ${index * 50}ms">
+            <span class="fab-label">${action.label}</span>
+            <button class="fab-button ${action.color}">
+                <i class="fas ${action.icon}"></i>
+            </button>
+        </div>
+    `).join('');
+}
 
 
 window.openModal = (id) => document.getElementById(id).classList.remove('hidden');
@@ -3680,7 +3893,7 @@ window.renderTasks = () => {
     Object.values(columns).forEach(col => { if (col) col.innerHTML = ''; });
     const listCounts = { 'todo': 0, 'inprogress': 0, 'done': 0 };
 
-    const searchQuery = document.getElementById('task-search') ? document.getElementById('task-search').value.toLowerCase() : '';
+    const searchQuery = getEffectiveQuery('tasks');
     const priorityFilter = document.getElementById('task-priority-filter') ? document.getElementById('task-priority-filter').value : 'All';
 
     cachedTasks.forEach(task => {
@@ -3854,7 +4067,7 @@ window.renderOffers = () => {
     if (document.getElementById('offer-stat-sent')) document.getElementById('offer-stat-sent').innerText = sentOffers;
     if (document.getElementById('offer-stat-signed')) document.getElementById('offer-stat-signed').innerText = signedOffers;
 
-    const searchTerm = document.getElementById('offer-search')?.value.toLowerCase() || '';
+    const searchTerm = getEffectiveQuery('offers');
     
     let filteredOffers = cachedOffers;
     if (currentOfferFilter !== 'all') {
@@ -4784,7 +4997,7 @@ window.renderTalentPool = () => {
     overviewLevel.classList.remove('hidden');
     inboxLevel.classList.add('hidden');
 
-    const searchTerm = document.getElementById('talentpool-search')?.value.toLowerCase() || '';
+    const searchTerm = getEffectiveQuery('talentpool');
     const statusFilter = document.getElementById('talentpool-filter-status')?.value || 'all';
 
     const candidates = cachedTalentPool;
@@ -4874,8 +5087,9 @@ window.viewJobInbox = (jobId) => {
     // Switch to talentpool section if not already there
     showSection('talentpool');
 
-    const searchInput = document.getElementById('inbox-search');
-    if (searchInput) searchInput.value = '';
+    // Hide FAB in inbox
+    const fab = document.getElementById('fab-container');
+    if (fab) fab.classList.add('hidden');
 
     const job = cachedJobs.find(j => j.id === jobId);
     if (!job) return;
@@ -4883,9 +5097,10 @@ window.viewJobInbox = (jobId) => {
     document.getElementById('talentpool-overview-level').classList.add('hidden');
     document.getElementById('talentpool-inbox-level').classList.remove('hidden');
 
-    document.getElementById('inbox-job-title').innerText = job.title;
-    document.getElementById('inbox-job-location').innerHTML = `<i class="fas fa-map-marker-alt mr-1"></i> ${job.location}`;
-    document.getElementById('inbox-job-status').innerText = job.status || 'Active';
+    const titleEl = document.getElementById('section-title');
+    const subtitleEl = document.getElementById('section-subtitle');
+    if (titleEl) titleEl.innerText = job.title;
+    if (subtitleEl) subtitleEl.innerHTML = `<i class="fas fa-map-marker-alt mr-1"></i> ${job.location} • <span class="badge badge-blue !py-0 !px-2 text-[9px] ml-1">${job.status || 'Active'}</span>`;
 
     filterInbox('all');
 };
@@ -4894,7 +5109,7 @@ window.exitJobInbox = () => {
     document.getElementById('talentpool-inbox-level').classList.add('hidden');
     document.getElementById('talentpool-overview-level').classList.remove('hidden');
     currentInboxJobId = null;
-    renderTalentPool();
+    showSection('talentpool');
 };
 
 window.filterInbox = (type) => {
@@ -4918,6 +5133,7 @@ window.filterInbox = (type) => {
 let currentInboxQueue = [];
 
 window.renderInboxCandidates = () => {
+    const searchTerm = getEffectiveQuery('inbox');
     const listContainer = document.getElementById('inbox-candidate-list');
     if (!listContainer || !currentInboxJobId) return;
 

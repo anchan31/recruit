@@ -74,6 +74,107 @@
         .dark #calc-display {
             background: rgba(0, 0, 0, 0.2);
         }
+
+        /* FAB Styles */
+        .fab-container {
+            position: fixed;
+            right: 1.5rem;
+            bottom: 1.5rem;
+            z-index: 60;
+            display: none; /* hidden by default, shown via JS after successful login */
+            flex-direction: column-reverse;
+            align-items: flex-end;
+            gap: 1rem;
+        }
+
+        .fab-main {
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 50%;
+            background: linear-gradient(to bottom right, #3b82f6, #4f46e5);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.5);
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: none;
+            outline: none;
+        }
+
+        .fab-main.active {
+            transform: rotate(135deg);
+            background: linear-gradient(to br, #ef4444, #dc2626);
+            box-shadow: 0 10px 25px -5px rgba(239, 68, 68, 0.5);
+        }
+
+        .fab-menu {
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: flex-end;
+            gap: 0.75rem;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(20px) scale(0.8);
+            transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+
+        .fab-menu.active {
+            pointer-events: auto;
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        .fab-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            opacity: 0;
+            transform: translateX(20px);
+        }
+
+        .fab-menu.active .fab-item {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .fab-label {
+            background: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #1e293b;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            white-space: nowrap;
+            border: 1px solid #f1f5f9;
+        }
+
+        .dark .fab-label {
+            background: #1e293b;
+            color: #f1f5f9;
+            border-color: #334155;
+        }
+
+        .fab-button {
+            width: 2.75rem;
+            height: 2.75rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .fab-button:hover {
+            transform: scale(1.1);
+        }
     </style>
 </head>
 
@@ -389,9 +490,12 @@
                 style="border-color: var(--border-color); background: var(--bg-primary)">
 
                 <div class="flex items-center gap-6">
-                    <h2 id="section-title"
-                        class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
-                        Dashboard</h2>
+                    <div class="flex flex-col">
+                        <h2 id="section-title"
+                            class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
+                            Dashboard</h2>
+                        <p id="section-subtitle" class="text-[10px] text-slate-500 font-medium tracking-wide mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis max-w-[300px]"></p>
+                    </div>
                 </div>
 
                 <div class="flex-1 flex justify-center px-8">
@@ -488,37 +592,18 @@
             </header>
 
             <!-- Content Area -->
-            <div class="p-8 overflow-y-auto flex-1" id="content-area">
+            <div class="p-8 overflow-y-auto flex-1 relative" id="content-area">
+                <!-- App Loader Scoped -->
+                <div id="app-loader" class="hidden">
+                    <div class="loader-content">
+                        <div class="spinner"></div>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-500 animate-pulse mt-4">Processing Data...</p>
+                    </div>
+                </div>
 
                 <!-- DASHBOARD VIEW -->
                 <div id="section-dashboard" class="space-y-8 animate-fade-in">
-                    <!-- Quick Actions -->
-                    <div
-                        class="flex flex-wrap gap-3 items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
-                        <h3 class="text-xl font-bold">Quick Overview</h3>
-                        <div class="flex flex-wrap gap-2">
-                            <button onclick="openModal('modal-candidate')"
-                                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold hover-lift flex items-center gap-2 shadow-sm shadow-blue-500/20">
-                                <i class="fas fa-user-plus"></i> Add Candidate
-                            </button>
-                            <button onclick="openAddInterviewModal()"
-                                class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-semibold hover-lift flex items-center gap-2 shadow-sm shadow-purple-500/20">
-                                <i class="fas fa-calendar-plus"></i> Schedule Interview
-                            </button>
-                            <button onclick="showSection('offers')"
-                                class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold hover-lift flex items-center gap-2 shadow-sm shadow-emerald-500/20">
-                                <i class="fas fa-file-signature"></i> View Offers
-                            </button>
-                            <button onclick="openAddTaskModal()"
-                                class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover-lift flex items-center gap-2 shadow-sm shadow-orange-500/20">
-                                <i class="fas fa-list-check"></i> New Task
-                            </button>
-                            <button onclick="showSection('portalsettings')"
-                                class="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-sm font-semibold hover-lift flex items-center gap-2">
-                                <i class="fas fa-cog"></i> Settings
-                            </button>
-                        </div>
-                    </div>
+
 
                     <!-- Primary Stats -->
                     <!-- Primary Stats Grid -->
@@ -796,22 +881,14 @@
 
                 <!-- COMPANIES VIEW -->
                 <div id="section-companies" class="hidden space-y-6">
-                    <div class="flex justify-between items-center">
-                        <h3 class="text-2xl font-bold tracking-tight">Companies</h3>
-                        <button
-                            onclick="document.getElementById('form-company').reset(); document.getElementById('form-company-id').value = ''; document.getElementById('modal-company-title').innerText = 'Add Company'; openModal('modal-company')"
-                            class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg flex items-center gap-2 hover-lift">
-                            <i class="fas fa-plus"></i> Add Company
-                        </button>
-                    </div>
+
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="companies-list">
                         <!-- Companies injected here -->
                     </div>
                 </div>
 
                 <div id="section-jobs" class="hidden space-y-6">
-                    <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
-                        <h3 class="text-2xl font-bold tracking-tight">Job Management</h3>
+                    <div class="flex flex-col lg:flex-row lg:justify-end lg:items-center gap-4">
                         <div class="flex flex-wrap gap-2 items-center justify-end">
                             <select id="filter-job-status" onchange="renderJobs()"
                                 class="filter-select compact text-sm md:w-auto min-w-[130px]">
@@ -834,11 +911,6 @@
                                 class="filter-select text-sm md:w-auto min-w-[140px]">
                                 <option value="all">All Designations</option>
                             </select>
-                            <button
-                                onclick="document.getElementById('form-job').reset(); document.getElementById('form-job-id').value = ''; openModal('modal-job')"
-                                class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition shadow-sm w-full md:w-auto hover-lift">
-                                <i class="fas fa-plus"></i> Create Job
-                            </button>
                         </div>
                     </div>
                     <div class="flex flex-col gap-4" id="jobs-list">
@@ -847,35 +919,11 @@
                 </div>
 
                 <!-- CANDIDATES VIEW -->
-                <div id="section-candidates" class="hidden space-y-6">
-                    <div class="space-y-4">
-                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                            <h3 class="text-2xl font-bold tracking-tight">Candidate Database</h3>
-                            <div class="flex flex-wrap gap-2 items-center">
-                                <button onclick="toggleCandidateView()" id="btn-toggle-candidates-view"
-                                    class="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm transition-colors border border-slate-200 dark:border-slate-700 hover-lift"
-                                    title="Toggle List/Cards">
-                                    <i class="fas fa-table"></i>
-                                </button>
-                                <button onclick="exportCandidatesCSV()"
-                                    class="px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg text-sm transition-colors border border-blue-200 dark:border-blue-800 hover-lift"
-                                    title="Export shown candidates to CSV">
-                                    <i class="fas fa-file-csv"></i>
-                                </button>
-                                <button onclick="bulkSelectAndMessage()"
-                                    class="px-4 py-2 bg-whatsapp hover:bg-whatsapp/90 text-white rounded-lg text-sm flex items-center gap-2 shadow-sm transition-transform active:scale-95 hover-lift">
-                                    <i class="fab fa-whatsapp"></i> Bulk Message
-                                </button>
-                                <button onclick="openModal('modal-candidate')"
-                                    class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg flex items-center gap-2 text-white font-medium shadow-md transition-all active:scale-95 hover-lift">
-                                    <i class="fas fa-plus"></i> Add Candidate
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Advanced Search Filters -->
+                <div id="section-candidates" class="hidden space-y-4">
+                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 w-full">
+                        <!-- Left: Advanced Search Filters -->
                         <div
-                            class="flex flex-wrap items-center gap-x-5 gap-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                            class="flex flex-wrap items-center gap-x-5 gap-y-3 flex-1 min-w-0">
                             <div class="flex items-center gap-2">
                                 <span
                                     class="text-[10px] uppercase font-bold text-slate-400 tracking-wider whitespace-nowrap">Budget
@@ -914,32 +962,6 @@
                             </div>
                             <div class="flex items-center gap-2">
                                 <span
-                                    class="text-[10px] uppercase font-bold text-slate-400 tracking-wider whitespace-nowrap">Experience</span>
-                                <select id="filter-candidate-exp" onchange="renderCandidates()"
-                                    class="filter-select text-xs min-w-[120px]">
-                                    <option value="all">Any Exp</option>
-                                    <option value="fresh">Freshers (0-1)</option>
-                                    <option value="junior">Junior (1-3)</option>
-                                    <option value="mid">Mid (3-7)</option>
-                                    <option value="senior">Senior (7+)</option>
-                                </select>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span
-                                    class="text-[10px] uppercase font-bold text-slate-400 tracking-wider whitespace-nowrap">Notice
-                                    Period</span>
-                                <select id="filter-candidate-np" onchange="renderCandidates()"
-                                    class="filter-select text-xs min-w-[120px]">
-                                    <option value="all">Any NP</option>
-                                    <option value="immediate">Immediate</option>
-                                    <option value="15">15 Days</option>
-                                    <option value="30">1 Month</option>
-                                    <option value="60">2 Months</option>
-                                    <option value="90">3 Months</option>
-                                </select>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span
                                     class="text-[10px] uppercase font-bold text-slate-400 tracking-wider whitespace-nowrap">Source</span>
                                 <select id="filter-candidate-source" onchange="renderCandidates()"
                                     class="filter-select text-xs min-w-[140px]">
@@ -955,7 +977,25 @@
                                 </select>
                             </div>
                         </div>
-                    </div>
+
+                        <!-- Right: View / Export / Bulk message actions -->
+                        <div class="flex flex-wrap md:flex-nowrap gap-2 items-center justify-end flex-shrink-0">
+                                <button onclick="toggleCandidateView()" id="btn-toggle-candidates-view"
+                                    class="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm transition-colors border border-slate-200 dark:border-slate-700 hover-lift"
+                                    title="Toggle List/Cards">
+                                    <i class="fas fa-table"></i>
+                                </button>
+                                <button onclick="exportCandidatesCSV()"
+                                    class="px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg text-sm transition-colors border border-blue-200 dark:border-blue-800 hover-lift"
+                                    title="Export shown candidates to CSV">
+                                    <i class="fas fa-file-csv"></i>
+                                </button>
+                                <button onclick="bulkSelectAndMessage()"
+                                    class="px-4 py-2 bg-whatsapp hover:bg-whatsapp/90 text-white rounded-lg text-sm flex items-center gap-2 shadow-sm transition-transform active:scale-95 hover-lift">
+                                    <i class="fab fa-whatsapp"></i> Bulk Message
+                                </button>
+                            </div>
+                        </div>
                     <div class="glass-card rounded-xl overflow-visible min-h-[450px]">
                         <div id="candidates-cards"
                             class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 hidden"></div>
@@ -980,19 +1020,9 @@
 
                 <!-- TASK BOARD VIEW -->
                 <div id="section-tasks" class="hidden space-y-6">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <h3 class="text-2xl font-bold">HR Task Board</h3>
-                            <p class="text-xs text-slate-500 text-orange-600 dark:text-orange-400 font-medium">
-                                Coordinate your team's internal recruitment tasks</p>
-                        </div>
+                    <div class="flex justify-end items-center">
                         <div class="flex items-center gap-4 w-full md:w-auto">
-                            <div class="relative flex-1 md:w-64">
-                                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                                <input type="text" id="task-search" placeholder="Search tasks..." 
-                                    oninput="renderTasks()"
-                                    class="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all">
-                            </div>
+
                             <select id="task-priority-filter" onchange="renderTasks()"
                                 class="pl-4 pr-10 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 outline-none focus:ring-2 focus:ring-orange-500/20 transition-all appearance-none cursor-pointer">
                                 <option value="All">All Priorities</option>
@@ -1001,10 +1031,6 @@
                                 <option value="High">High</option>
                                 <option value="Urgent">Urgent</option>
                             </select>
-                            <button onclick="openAddTaskModal()"
-                                class="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl gap-2 flex items-center shadow-lg shadow-orange-500/20 transition-all active:scale-95 whitespace-nowrap">
-                                <i class="fas fa-plus"></i> New Task
-                            </button>
                         </div>
                     </div>
 
@@ -1069,22 +1095,9 @@
                 <div id="section-talentpool" class="hidden space-y-6">
                     <!-- 1. OVERVIEW LEVEL: Manage Jobs & Responses -->
                     <div id="talentpool-overview-level" class="space-y-6">
-                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-2">
-                            <div class="flex flex-col">
-                                <h3 class="text-2xl font-bold flex items-center gap-3 text-slate-800 dark:text-white">
-                                    <i class="fas fa-layer-group text-blue-500"></i> Manage Responses
-                                </h3>
-                                <p class="text-xs text-slate-500 font-medium tracking-wide mt-1">Track and manage
-                                    candidate responses across all your open positions</p>
-                            </div>
+                        <div class="flex flex-col md:flex-row justify-end items-center gap-4 px-2">
                             <div class="flex items-center gap-3 w-full md:w-auto">
-                                <div class="relative flex-1 md:w-64">
-                                    <i
-                                        class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                                    <input type="text" id="talentpool-search" placeholder="Search by job title..."
-                                        oninput="renderTalentPool()"
-                                        class="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all transition-all">
-                                </div>
+
                                 <select id="talentpool-filter-status" onchange="renderTalentPool()"
                                     class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
                                     <option value="all">All Jobs</option>
@@ -1100,10 +1113,6 @@
                                     class="p-2.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 transition shadow-sm"
                                     title="Refresh">
                                     <i class="fas fa-sync-alt text-slate-600 dark:text-slate-300"></i>
-                                </button>
-                                <button onclick="showSection('jobs')"
-                                    class="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition">
-                                    <i class="fas fa-plus"></i> <span class="hidden sm:inline">Post Job</span>
                                 </button>
                             </div>
                         </div>
@@ -1122,19 +1131,7 @@
                                 class="w-10 h-10 flex items-center justify-center bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 transition shadow-sm">
                                 <i class="fas fa-arrow-left text-slate-600"></i>
                             </button>
-                            <div>
-                                <h3 id="inbox-job-title" class="text-xl font-bold text-slate-800 dark:text-white">Job
-                                    Title</h3>
-                                <div class="flex items-center gap-3 text-xs text-slate-500 font-medium">
-                                    <span id="inbox-job-location"><i class="fas fa-map-marker-alt mr-1"></i>
-                                        Location</span>
-                                    <span class="opacity-30">|</span>
-                                    <span id="inbox-job-date"><i class="fas fa-calendar mr-1"></i> Posted 2 days
-                                        ago</span>
-                                    <span id="inbox-job-status"
-                                        class="badge badge-blue !py-0 !px-2 text-[9px]">Active</span>
-                                </div>
-                            </div>
+
                         </div>
 
                         <div class="flex flex-col lg:flex-row gap-6 h-[calc(100vh-280px)]">
@@ -1186,15 +1183,7 @@
                                                 All</span>
                                         </label>
 
-                                        <!-- Search Candidates within Inbox -->
-                                        <div class="relative w-64">
-                                            <i
-                                                class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]"></i>
-                                            <input type="text" id="inbox-search"
-                                                placeholder="Search by name, email, skills..."
-                                                oninput="renderInboxCandidates()"
-                                                class="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-500/10 placeholder:text-slate-400 transition-all font-medium">
-                                        </div>
+
 
                                         <div id="bulk-actions"
                                             class="hidden animate-in fade-in zoom-in-95 duration-200 items-center gap-2 border-l border-slate-200 pl-4 ml-2">
@@ -1205,12 +1194,6 @@
                                         </div>
                                     </div>
                                     <div class="flex items-center gap-3">
-                                        <div class="relative">
-                                            <i
-                                                class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]"></i>
-                                            <input type="text" id="inbox-search" placeholder="Search applicants..."
-                                                class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full pl-8 pr-4 py-1.5 text-[11px] w-48 focus:ring-2 focus:ring-blue-100 transition-all">
-                                        </div>
                                     </div>
                                 </div>
 
@@ -1227,13 +1210,7 @@
                 <!-- OFFERS VIEW -->
                 <!-- OFFERS VIEW -->
                 <div id="section-offers" class="hidden space-y-8 animate-fade-up">
-                    <!-- Header -->
-                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                        <div>
-                            <h3 class="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">Offer Management</h3>
-                            <p class="text-slate-500 dark:text-slate-400 font-medium text-sm mt-1">Track and manage the final lifecycle of candidate selection.</p>
-                        </div>
-                    </div>
+
 
                     <!-- Summary Stats Row -->
                     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1264,10 +1241,7 @@
                             <button onclick="filterOffersByStatus('Signed')" class="offer-filter-btn px-6 py-2 rounded-lg text-xs font-bold transition-all text-slate-500" data-status="Signed">Signed</button>
                         </div>
                         
-                        <div class="relative w-full md:w-96">
-                            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                            <input type="text" id="offer-search" placeholder="Search candidate or position..." class="theme-input h-11 pl-10 pr-4 bg-white dark:bg-slate-800 border-none shadow-sm rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 transition-all font-medium" oninput="renderOffers()">
-                        </div>
+
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="offers-list">
@@ -1276,15 +1250,7 @@
                 </div>
 
 
-                <!-- PORTAL SETTINGS VIEW -->
                 <div id="section-portalsettings" class="hidden space-y-6">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <h3 class="text-2xl font-bold">Public Portal Settings</h3>
-                            <p class="text-xs text-slate-500 font-medium">Configure how candidates see your career page
-                            </p>
-                        </div>
-                    </div>
                     <div id="portal-settings-container">
                         <!-- JS injects form here -->
                     </div>
@@ -1292,13 +1258,7 @@
 
                 <!-- INTERVIEWS VIEW -->
                 <div id="section-interviews" class="hidden space-y-6">
-                    <div class="flex justify-between items-center">
-                        <h3 class="text-2xl font-bold">Interview Scheduler</h3>
-                        <button onclick="openAddInterviewModal()"
-                            class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg gap-2 flex items-center">
-                            <i class="fas fa-plus"></i> Schedule Interview
-                        </button>
-                    </div>
+
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="interviews-list">
                         <!-- Interviews injected here -->
                     </div>
@@ -1306,16 +1266,7 @@
 
                 <!-- MESSAGING VIEW -->
                 <div id="section-messaging" class="hidden space-y-6">
-                    <div class="flex justify-between items-center">
-                        <h3 class="text-2xl font-bold flex items-center gap-2"><i
-                                class="fas fa-paper-plane text-blue-400"></i>
-                            Communications</h3>
-                        <button
-                            onclick="document.getElementById('form-wa-template').reset(); document.getElementById('form-wa-template-id').value = ''; document.getElementById('modal-wa-template-title').innerText = 'Create Messaging Template'; openModal('modal-wa-template')"
-                            class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg flex items-center gap-2 text-white font-medium shadow-lg">
-                            <i class="fas fa-plus"></i> New Template
-                        </button>
-                    </div>
+
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <!-- Left Panel: Templates List & Sending -->
@@ -1408,10 +1359,7 @@
 
                 <!-- REPORTS VIEW -->
                 <div id="section-reports" class="hidden space-y-6">
-                    <div class="flex justify-between items-center">
-                        <h3 class="text-2xl font-bold flex items-center gap-2" style="color: var(--text-primary)"><i
-                                class="fas fa-file-excel text-green-500"></i> Reports & Data Export</h3>
-                    </div>
+
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <!-- Candidates Report Card -->
                         <div class="glass-card p-6 rounded-2xl border transition-colors group"
@@ -2460,11 +2408,16 @@
         </div>
     </div>
 
-    <!-- Toggle Calculator Floating Action Button -->
-    <button onclick="toggleCalculator()" id="calc-toggle-btn"
-        class="fixed bottom-6 right-6 z-[998] w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 hover:-rotate-12 active:scale-95 transition-all">
-        <i class="fas fa-calculator text-xl"></i>
-    </button>
+    <!-- Dynamic Global Floating Action Button -->
+    <div class="fab-container" id="fab-container">
+        <button class="fab-main" id="fab-main" onclick="toggleFAB()">
+            <i class="fas fa-plus text-xl"></i>
+        </button>
+        <div class="fab-menu" id="fab-menu">
+            <!-- Dynamic items will be injected here -->
+        </div>
+    </div>
+
 </body>
 
 </html>
