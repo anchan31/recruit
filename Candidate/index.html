@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Candidate Portal | Recruitment Suite HR</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        whatsapp: '#25D366',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+        :root {
+            --primary-color: #3b82f6;
+            --font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-family);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+
+        .dark .glass-card {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        .theme-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            border: 1px solid #e2e8f0;
+            background-color: rgba(255, 255, 255, 0.7);
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .dark .theme-input {
+            border-color: #334155;
+            background-color: rgba(30, 41, 59, 0.7);
+            color: white;
+        }
+
+        .theme-input:focus {
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 700;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.95);
+        }
+
+        .btn-secondary {
+            background-color: #f1f5f9;
+            color: #334155;
+            font-weight: 700;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .dark .btn-secondary {
+            background-color: #1e293b;
+            color: #cbd5e1;
+        }
+
+        .btn-secondary:hover {
+            background-color: #e2e8f0;
+        }
+
+        .dark .btn-secondary:hover {
+            background-color: #334155;
+        }
+
+        .btn-secondary:active {
+            transform: scale(0.95);
+        }
+
+        .stepper-dot {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .stepper-dot.active {
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.1);
+        }
+
+        .stepper-dot.inactive {
+            background-color: #e2e8f0;
+            color: #94a3b8;
+        }
+
+        .dark .stepper-dot.inactive {
+            background-color: #1e293b;
+            color: #64748b;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 9999px;
+        }
+
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #334155;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .portal-locked-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background-color: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .dark .portal-locked-overlay {
+            background-color: #0f172a;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 dark:bg-[#0f172a] min-h-screen text-slate-900 dark:text-slate-100 antialiased">
+
+    <!-- Navbar -->
+    <nav class="sticky top-0 z-50 glass-card border-b border-slate-200 dark:border-slate-800 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+                    <i class="fas fa-users-rays"></i>
+                </div>
+                <h1 class="text-xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-blue-200">
+                    Recruitment Suite <span class="text-slate-400 font-medium">| Portal</span>
+                </h1>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <button id="theme-toggle" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-moon dark:hidden"></i>
+                    <i class="fas fa-sun hidden dark:inline"></i>
+                </button>
+                <div id="user-menu" class="hidden flex items-center gap-4">
+                    <div class="hidden md:block text-right">
+                        <p id="user-display-name" class="text-xs font-bold leading-none">Candidate</p>
+                        <p id="user-display-email" class="text-[10px] text-slate-500 mt-0.5">email@example.com</p>
+                    </div>
+                    <button id="btn-logout" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 transition-all">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-6">
+        
+        <!-- Auth View -->
+        <div id="auth-view" class="max-w-md mx-auto py-12 space-y-8 animate-fade-in">
+            <div class="text-center">
+                <h2 id="portal-headline" class="text-3xl font-black text-slate-900 dark:text-white">Join Our Talent Network</h2>
+                <p id="portal-about" class="text-slate-500 dark:text-slate-400 mt-2">Create an account to browse jobs and track applications.</p>
+            </div>
+
+            <div class="glass-card rounded-2xl p-8 shadow-xl">
+                <!-- Registration Flow -->
+                <div id="register-form" class="space-y-4">
+                    <div class="space-y-1">
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">Full Name</label>
+                        <input type="text" id="reg-name" placeholder="John Doe" class="theme-input">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">Email Address</label>
+                        <input type="email" id="reg-email" placeholder="john@example.com" class="theme-input">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">Password</label>
+                        <input type="password" id="reg-password" placeholder="••••••••" class="theme-input">
+                    </div>
+                    <button id="btn-register" class="btn-primary w-full mt-6">Create Account</button>
+                    <p class="text-center text-sm text-slate-500 mt-4">
+                        Already have an account? <button onclick="toggleAuthMode('login')" class="text-blue-600 font-bold hover:underline">Sign In</button>
+                    </p>
+                </div>
+
+                <!-- Login Flow -->
+                <div id="login-form" class="hidden space-y-4">
+                    <div class="space-y-1">
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">Email Address</label>
+                        <input type="email" id="login-email" placeholder="john@example.com" class="theme-input">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">Password</label>
+                        <input type="password" id="login-password" placeholder="••••••••" class="theme-input">
+                    </div>
+                    <button id="btn-login-submit" class="btn-primary w-full mt-6">Sign In</button>
+                    <p class="text-center text-sm text-slate-500 mt-4">
+                        New here? <button onclick="toggleAuthMode('register')" class="text-blue-600 font-bold hover:underline">Create Account</button>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile View -->
+        <div id="profile-view" class="hidden max-w-4xl mx-auto py-8 space-y-8 animate-fade-in">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h2 class="text-4xl font-black text-slate-900 dark:text-white">Setup Your Profile</h2>
+                    <p class="text-slate-500 dark:text-slate-400 mt-1">Tell us about yourself to match you with the right opportunities.</p>
+                </div>
+                <div class="flex items-center gap-4 bg-white dark:bg-slate-800/50 p-2 rounded-2xl border border-slate-200 dark:border-slate-700">
+                    <div class="stepper-dot active">1</div>
+                    <div class="w-12 h-1 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+                    <div class="stepper-dot inactive">2</div>
+                </div>
+            </div>
+
+            <form id="form-profile" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Personal Info -->
+                <div class="glass-card p-8 rounded-3xl space-y-6">
+                    <h3 class="text-lg font-bold flex items-center gap-2"><i class="fas fa-user text-blue-500"></i> Personal Details</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-1 col-span-2">
+                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Full Name</label>
+                             <input type="text" name="name" required class="theme-input">
+                        </div>
+                        <div class="space-y-1">
+                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Phone Number</label>
+                             <input type="tel" name="phone" required class="theme-input">
+                        </div>
+                        <div class="space-y-1">
+                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Gender</label>
+                             <select name="gender" class="theme-input">
+                                 <option value="Male">Male</option>
+                                 <option value="Female">Female</option>
+                                 <option value="Other">Other</option>
+                             </select>
+                        </div>
+                        <div class="space-y-1 col-span-2">
+                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">City / Location</label>
+                             <input type="text" name="location" required class="theme-input" placeholder="e.g. Mumbai, India">
+                        </div>
+                        <div class="space-y-1 col-span-2">
+                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Current Address</label>
+                             <textarea name="address" rows="2" class="theme-input resize-none"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Professional Info -->
+                <div class="glass-card p-8 rounded-3xl space-y-6">
+                    <h3 class="text-lg font-bold flex items-center gap-2"><i class="fas fa-briefcase text-blue-500"></i> Professional Summary</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-1 col-span-2">
+                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Current Company</label>
+                             <input type="text" name="currentCompany" class="theme-input">
+                        </div>
+                        <div class="space-y-1">
+                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Experience (Yrs)</label>
+                             <input type="number" name="experience" step="0.5" class="theme-input">
+                        </div>
+                        <div class="space-y-1">
+                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Notice Period (Days)</label>
+                             <input type="number" name="noticePeriod" class="theme-input">
+                        </div>
+                        <div class="space-y-1 col-span-2">
+                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Highest Qualification</label>
+                             <input type="text" name="qualification" class="theme-input">
+                        </div>
+                        <div class="space-y-1 col-span-2">
+                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Key Skills (Comma Separated)</label>
+                             <input type="text" name="skills" class="theme-input" placeholder="e.g. React, Node.js, Design">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compensation & Resume -->
+                <div class="glass-card p-8 rounded-3xl space-y-6 md:col-span-2">
+                    <h3 class="text-lg font-bold flex items-center gap-2"><i class="fas fa-indian-rupee-sign text-blue-500"></i> Compensation & Documents</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="space-y-1">
+                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Current Monthly CTC</label>
+                             <div class="relative">
+                                 <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
+                                 <input type="number" name="currentCTC" class="theme-input pl-8">
+                             </div>
+                        </div>
+                        <div class="space-y-1">
+                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Expected Monthly CTC</label>
+                             <div class="relative">
+                                 <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
+                                 <input type="number" name="expectedCTC" class="theme-input pl-8">
+                             </div>
+                        </div>
+                        <div class="space-y-1">
+                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Resume URL (Public Link)</label>
+                             <input type="url" name="resumeUrl" class="theme-input" placeholder="Google Drive / Dropbox link">
+                        </div>
+                        <div class="space-y-1 md:col-span-3">
+                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cover Letter / Personal Note</label>
+                             <textarea name="notes" rows="4" class="theme-input resize-none" placeholder="Tell us why you're a great fit..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="md:col-span-2 flex justify-center pb-12">
+                     <button type="submit" class="btn-primary px-12 group">
+                         Complete Profile Setup
+                         <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                     </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Main Portal View -->
+        <div id="portal-view" class="hidden space-y-8 animate-fade-in">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                    <h2 id="greeting" class="text-4xl font-black text-slate-800 dark:text-white">Hello, Candidate!</h2>
+                    <p class="text-slate-500 dark:text-slate-400 mt-1">Explore job openings and track your application status here.</p>
+                </div>
+                
+                <div class="flex p-1 bg-slate-100 dark:bg-slate-800/50 rounded-2xl w-fit">
+                    <button id="tab-jobs" class="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-white dark:bg-slate-800 shadow-sm text-blue-600">Browse Jobs</button>
+                    <button id="tab-apps" class="px-6 py-2.5 rounded-xl font-bold text-sm transition-all text-slate-500 hover:text-slate-700">My Applications</button>
+                </div>
+            </div>
+
+            <!-- Jobs Listing -->
+            <div id="jobs-pane" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-fr">
+                <!-- Job cards will be injected here -->
+            </div>
+
+            <!-- Applications Listing -->
+            <div id="apps-pane" class="hidden space-y-6 max-w-4xl mx-auto">
+                <!-- Application cards will be injected here -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Global Processing Loader -->
+    <div id="app-loader" class="fixed inset-0 z-[100] bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-sm flex items-center justify-center hidden">
+        <div class="text-center">
+            <div class="w-16 h-16 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+            <p class="text-xs font-black uppercase tracking-widest text-slate-500 animate-pulse">Processing Request...</p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { 
+            getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail 
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { 
+            getFirestore, collection, addDoc, getDocs, getDoc, doc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, setDoc, query, where, orderBy 
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDKuFUJyHUl5AIFSFHCg-4S_wadsha6Et4",
+            authDomain: "recruitment-suite-hr.firebaseapp.com",
+            projectId: "recruitment-suite-hr",
+            storageBucket: "recruitment-suite-hr.firebasestorage.app",
+            messagingSenderId: "1049067446272",
+            appId: "1:1049067446272:web:a0eb4e5a9fac1589a8f8e5"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // State
+        let currentUser = null;
+        let currentProfile = null;
+        let openJobs = [];
+        let myApplications = [];
+        let portalSettings = null;
+
+        // Elements
+        const views = ['auth-view', 'profile-view', 'portal-view'];
+        const loader = document.getElementById('app-loader');
+        
+        // --- HELPERS ---
+        const showView = (viewId) => {
+            views.forEach(v => document.getElementById(v).classList.add('hidden'));
+            document.getElementById(viewId).classList.remove('hidden');
+            
+            // Toggle User Menu visibility
+            document.getElementById('user-menu').classList.toggle('hidden', viewId === 'auth-view');
+        };
+
+        const showProcessing = (show) => loader.classList.toggle('hidden', !show);
+
+        window.toggleAuthMode = (mode) => {
+            document.getElementById('register-form').classList.toggle('hidden', mode === 'login');
+            document.getElementById('login-form').classList.toggle('hidden', mode === 'register');
+        };
+
+        // --- SETTINGS FLOW ---
+        const fetchPortalSettings = async () => {
+            try {
+                const docSnap = await getDoc(doc(db, "settings", "publicPortal"));
+                if (docSnap.exists()) {
+                    portalSettings = docSnap.data();
+                    applySettings();
+                }
+            } catch (err) {
+                console.error("Failed to fetch settings:", err);
+            }
+        };
+
+        const applySettings = () => {
+            if (!portalSettings) return;
+
+            // Handle Lock
+            if (portalSettings.isLocked) {
+                document.body.innerHTML = `
+                    <div class="portal-locked-overlay">
+                        <div class="max-w-md">
+                            <div class="w-20 h-20 bg-red-100 text-red-600 rounded-3xl flex items-center justify-center text-3xl mx-auto mb-6">
+                                <i class="fas fa-lock"></i>
+                            </div>
+                            <h2 class="text-3xl font-black mb-4">Portal Temporarily Offline</h2>
+                            <p class="text-slate-500 leading-relaxed mb-8">We are currently performing maintenance or updating our listings. Please check back later.</p>
+                            <a href="mailto:${portalSettings.supportEmail || ''}" class="text-blue-600 font-bold hover:underline">Contact Support</a>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Primary Color
+            if (portalSettings.primaryColor) {
+                document.documentElement.style.setProperty('--primary-color', portalSettings.primaryColor);
+            }
+
+            // Font Family
+            if (portalSettings.fontFamily) {
+                document.documentElement.style.setProperty('--font-family', portalSettings.fontFamily);
+            }
+
+            // Headline & About
+            if (portalSettings.companyPrompt) {
+                document.getElementById('portal-headline').innerText = portalSettings.companyPrompt;
+            }
+            if (portalSettings.aboutCompany) {
+                document.getElementById('portal-about').innerText = portalSettings.aboutCompany;
+            }
+
+            // Background
+            if (portalSettings.backgroundUrl) {
+                document.body.style.backgroundImage = `url('${portalSettings.backgroundUrl}')`;
+                document.body.style.backgroundSize = 'cover';
+                document.body.style.backgroundAttachment = 'fixed';
+            }
+        };
+
+        // Initialize Settings
+        fetchPortalSettings();
+
+        // --- AUTH FLOW ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('user-display-email').innerText = user.email;
+                await syncProfile();
+            } else {
+                currentUser = null;
+                currentProfile = null;
+                showView('auth-view');
+            }
+        });
+
+        const syncProfile = async () => {
+            showProcessing(true);
+            try {
+                const profileSnap = await getDoc(doc(db, "candidateProfiles", currentUser.uid));
+                if (profileSnap.exists()) {
+                    currentProfile = profileSnap.data();
+                    document.getElementById('user-display-name').innerText = currentProfile.name;
+                    document.getElementById('greeting').innerText = `Hello, ${currentProfile.name.split(' ')[0]}!`;
+                    showView('portal-view');
+                    initPortal();
+                } else {
+                    // Pre-fill profile form with user data if available
+                    document.querySelector('#form-profile [name="name"]').value = currentUser.displayName || '';
+                    showView('profile-view');
+                }
+            } catch (err) {
+                console.error("Profile sync failed:", err);
+            } finally {
+                showProcessing(false);
+            }
+        };
+
+        // Register
+        document.getElementById('btn-register').addEventListener('click', async () => {
+            const name = document.getElementById('reg-name').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+
+            if (!name || !email || !password) return alert("Please fill all fields.");
+
+            showProcessing(true);
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+                // Profile view will be shown by onAuthStateChanged call to syncProfile
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                showProcessing(false);
+            }
+        });
+
+        // Login
+        document.getElementById('btn-login-submit').addEventListener('click', async () => {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            if (!email || !password) return alert("Please fill all fields.");
+
+            showProcessing(true);
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                showProcessing(false);
+            }
+        });
+
+        // Logout
+        document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
+
+        // Submit Profile
+        document.getElementById('form-profile').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const profileData = Object.fromEntries(formData.entries());
+            profileData.profileUid = currentUser.uid;
+            profileData.email = currentUser.email;
+            profileData.updatedAt = serverTimestamp();
+
+            showProcessing(true);
+            try {
+                await setDoc(doc(db, "candidateProfiles", currentUser.uid), profileData);
+                await syncProfile();
+            } catch (err) {
+                alert("Failed to save profile: " + err.message);
+            } finally {
+                showProcessing(false);
+            }
+        });
+
+        // --- PORTAL FLOW ---
+        const initPortal = () => {
+            fetchJobs();
+            fetchApplications();
+        };
+
+        const fetchJobs = () => {
+            const q = query(collection(db, "jobs"), where("status", "==", "Open"));
+            onSnapshot(q, (snapshot) => {
+                openJobs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderJobs();
+            });
+        };
+
+        const fetchApplications = () => {
+            const q = query(collection(db, "candidates"), where("profileUid", "==", currentUser.uid));
+            onSnapshot(q, (snapshot) => {
+                myApplications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderJobs(); // To update apply buttons
+                renderApplications();
+            });
+        };
+
+        const renderJobs = () => {
+            const container = document.getElementById('jobs-pane');
+            container.innerHTML = openJobs.map(job => {
+                const applied = myApplications.find(a => a.jobId === job.id);
+                const btnHtml = applied 
+                    ? `<button disabled class="btn-secondary w-full cursor-not-allowed opacity-70"><i class="fas fa-check-circle text-emerald-500"></i> Applied</button>`
+                    : `<button onclick="applyToJob('${job.id}')" class="btn-primary w-full">Apply Now</button>`;
+
+                return `
+                    <div class="glass-card p-6 rounded-3xl flex flex-col justify-between group hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border-b-4 border-b-transparent hover:border-b-blue-600">
+                        <div>
+                            <div class="flex justify-between items-start mb-4">
+                                <span class="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase tracking-widest rounded-lg">${job.department || 'General'}</span>
+                                <span class="text-xs font-bold text-slate-400"><i class="fas fa-location-dot mr-1"></i> ${job.location || 'Remote'}</span>
+                            </div>
+                            <h3 class="text-xl font-extrabold text-slate-800 dark:text-white mb-2 leading-tight">${job.title}</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-3 mb-6">${job.description || 'Join our growing team and make an impact. We are looking for talented individuals who are passionate about their work.'}</p>
+                            
+                            <div class="flex items-center gap-4 text-xs font-bold text-slate-600 dark:text-slate-400 mb-8">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-indian-rupee-sign text-emerald-500"></i>
+                                    <span>₹${job.budget ? (job.budget/100000).toFixed(1) + 'L' : 'NA'} LPA</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-clock text-orange-400"></i>
+                                    <span>Full-time</span>
+                                </div>
+                            </div>
+                        </div>
+                        ${btnHtml}
+                    </div>
+                `;
+            }).join('');
+        };
+
+        const renderApplications = () => {
+            const container = document.getElementById('apps-pane');
+            if (myApplications.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 glass-card rounded-3xl border-dashed">
+                        <i class="fas fa-folder-open text-4xl text-slate-300 mb-4"></i>
+                        <p class="text-slate-500 font-bold">No applications yet. Start exploring jobs!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = myApplications.map(app => {
+                const job = openJobs.find(j => j.id === app.jobId) || { title: app.jobId, company: 'Unknown' };
+                const stageColors = {
+                    'Applied': 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+                    'Screening': 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
+                    'Interview': 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
+                    'Selected': 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
+                    'Hired': 'bg-green-600 text-white',
+                    'Rejected': 'bg-red-100 text-red-600'
+                };
+                const colorClass = stageColors[app.stage] || 'bg-slate-100 text-slate-600';
+
+                return `
+                    <div class="glass-card p-6 rounded-2xl flex items-center justify-between gap-4">
+                        <div class="flex items-start gap-4">
+                            <div class="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-xl text-blue-600">
+                                <i class="fas fa-briefcase"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-black text-lg text-slate-800 dark:text-white">${job.title}</h4>
+                                <p class="text-xs text-slate-500 uppercase tracking-widest font-bold">Applied: ${new Date(app.appliedAt?.seconds * 1000 || Date.now()).toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end gap-2">
+                             <span class="px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ${colorClass}">${app.stage || 'Applied'}</span>
+                             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Current Status</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        window.applyToJob = async (jobId) => {
+            if (!currentProfile) return alert("Please complete your profile first.");
+            
+            showProcessing(true);
+            try {
+                const candidateData = {
+                    ...currentProfile,
+                    jobId: jobId,
+                    stage: 'Applied',
+                    source: 'Job Portal',
+                    profileUid: currentUser.uid,
+                    appliedAt: serverTimestamp(),
+                    isPortalApplication: true,
+                    inTalentPool: true,
+                    isNew: true
+                };
+
+                await addDoc(collection(db, "candidates"), candidateData);
+                alert("Application submitted successfully!");
+            } catch (err) {
+                alert("Failed to apply: " + err.message);
+            } finally {
+                showProcessing(false);
+            }
+        };
+
+        // Tab Switching
+        const btnJobs = document.getElementById('tab-jobs');
+        const btnApps = document.getElementById('tab-apps');
+        const paneJobs = document.getElementById('jobs-pane');
+        const paneApps = document.getElementById('apps-pane');
+
+        btnJobs.addEventListener('click', () => {
+            btnJobs.classList.add('bg-white', 'dark:bg-slate-800', 'shadow-sm', 'text-blue-600');
+            btnJobs.classList.remove('text-slate-500');
+            btnApps.classList.remove('bg-white', 'dark:bg-slate-800', 'shadow-sm', 'text-blue-600');
+            btnApps.classList.add('text-slate-500');
+            paneJobs.classList.remove('hidden');
+            paneApps.classList.add('hidden');
+        });
+
+        btnApps.addEventListener('click', () => {
+            btnApps.classList.add('bg-white', 'dark:bg-slate-800', 'shadow-sm', 'text-blue-600');
+            btnApps.classList.remove('text-slate-500');
+            btnJobs.classList.remove('bg-white', 'dark:bg-slate-800', 'shadow-sm', 'text-blue-600');
+            btnJobs.classList.add('text-slate-500');
+            paneApps.classList.remove('hidden');
+            paneJobs.classList.add('hidden');
+        });
+
+        // Theme Toggle Logic
+        const themeBtn = document.getElementById('theme-toggle');
+        const setDark = (dark) => {
+            document.documentElement.classList.toggle('dark', dark);
+            localStorage.setItem('theme', dark ? 'dark' : 'light');
+        };
+
+        themeBtn.addEventListener('click', () => setDark(!document.documentElement.classList.contains('dark')));
+        
+        // Init theme
+        if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            setDark(true);
+        }
+    </script>
+</body>
+
+</html>

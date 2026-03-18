@@ -474,7 +474,6 @@ function setupRealtimeListeners() {
         updateDropdowns();
         if (typeof renderTalentPool === 'function') renderTalentPool();
         if (typeof updateTalentPoolBadge === 'function') updateTalentPoolBadge();
-        if (typeof renderInboxCandidates === 'function' && currentInboxJobId) renderInboxCandidates();
         if (pendingInitialLoads > 0) {
             pendingInitialLoads--;
             if (pendingInitialLoads === 0) hideLoader();
@@ -2060,6 +2059,8 @@ document.getElementById('form-candidate').onsubmit = async (e) => {
         } else {
             data.createdAt = serverTimestamp();
             data.stage = 'Applied';
+            data.inTalentPool = true;
+            data.isNew = true;
             await addDoc(collection(db, "candidates"), data);
             showToast("Candidate Added!");
         }
@@ -4293,6 +4294,12 @@ window.loadPortalSettings = async () => {
                                     <i class="fas fa-tower-broadcast text-blue-500"></i> Public Portal Configuration
                                 </h4>
                                 <p class="text-sm text-slate-500 mt-1">Manage branding, visibility, and access for your public career page.</p>
+                                <div class="mt-3 flex items-center gap-3">
+                                    <a href="Candidate/candidate_portal.html" target="_blank" class="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded-lg border border-blue-100 dark:border-blue-800 transition-all">
+                                        <i class="fas fa-external-link-alt"></i> View Live Portal
+                                    </a>
+                                    <span class="text-[10px] font-mono text-slate-400 opacity-70">./Candidate/candidate_portal.html</span>
+                                </div>
                             </div>
                             <div class="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
                                 <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Portal Status</span>
@@ -4984,7 +4991,7 @@ window.showCompanyProfile = (id) => {
 };
 
 
-let currentInboxJobId = null;
+window.currentInboxJobId = null;
 let currentInboxFilter = 'all';
 
 window.renderTalentPool = () => {
@@ -4993,9 +5000,36 @@ window.renderTalentPool = () => {
     const jobList = document.getElementById('talentpool-job-list');
     if (!jobList) return;
 
-    // Ensure we are in overview level
-    overviewLevel.classList.remove('hidden');
-    inboxLevel.classList.add('hidden');
+    if (window.currentInboxJobId) {
+        // ENFORCE INBOX VIEW
+        overviewLevel.classList.add('hidden');
+        inboxLevel.classList.remove('hidden');
+
+        const job = cachedJobs.find(j => j.id === window.currentInboxJobId);
+        if (job) {
+            const titleEl = document.getElementById('section-title');
+            const subtitleEl = document.getElementById('section-subtitle');
+            if (titleEl) titleEl.innerText = job.title;
+            if (subtitleEl) subtitleEl.innerHTML = `<i class="fas fa-map-marker-alt mr-1"></i> ${job.location} • <span class="badge badge-blue !py-0 !px-2 text-[9px] ml-1">${job.status || 'Active'}</span>`;
+        }
+        
+        // Hide FAB in inbox
+        const fab = document.getElementById('fab-container');
+        if (fab) fab.classList.add('hidden');
+
+        // Render the candidates for this job
+        if (typeof renderInboxCandidates === 'function') renderInboxCandidates();
+        
+        // Always render the job list in the background so it's ready for toggle back
+    } else {
+        // ENFORCE OVERVIEW VIEW
+        overviewLevel.classList.remove('hidden');
+        inboxLevel.classList.add('hidden');
+
+        // Show FAB in overview
+        const fab = document.getElementById('fab-container');
+        if (fab) fab.classList.remove('hidden');
+    }
 
     const searchTerm = getEffectiveQuery('talentpool');
     const statusFilter = document.getElementById('talentpool-filter-status')?.value || 'all';
@@ -5080,36 +5114,18 @@ window.renderTalentPool = () => {
     }).join('');
 };
 
-window.viewJobInbox = (jobId) => {
-    currentInboxJobId = jobId;
+window.viewJobInbox = async (jobId) => {
+    window.currentInboxJobId = jobId;
     currentInboxFilter = 'all';
 
-    // Switch to talentpool section if not already there
-    showSection('talentpool');
-
-    // Hide FAB in inbox
-    const fab = document.getElementById('fab-container');
-    if (fab) fab.classList.add('hidden');
-
-    const job = cachedJobs.find(j => j.id === jobId);
-    if (!job) return;
-
-    document.getElementById('talentpool-overview-level').classList.add('hidden');
-    document.getElementById('talentpool-inbox-level').classList.remove('hidden');
-
-    const titleEl = document.getElementById('section-title');
-    const subtitleEl = document.getElementById('section-subtitle');
-    if (titleEl) titleEl.innerText = job.title;
-    if (subtitleEl) subtitleEl.innerHTML = `<i class="fas fa-map-marker-alt mr-1"></i> ${job.location} • <span class="badge badge-blue !py-0 !px-2 text-[9px] ml-1">${job.status || 'Active'}</span>`;
-
-    filterInbox('all');
+    // Switch to talentpool section
+    // renderTalentPool will handle the level toggling and title updates
+    await showSection('talentpool');
 };
 
-window.exitJobInbox = () => {
-    document.getElementById('talentpool-inbox-level').classList.add('hidden');
-    document.getElementById('talentpool-overview-level').classList.remove('hidden');
-    currentInboxJobId = null;
-    showSection('talentpool');
+window.exitJobInbox = async () => {
+    window.currentInboxJobId = null;
+    await showSection('talentpool');
 };
 
 window.filterInbox = (type) => {
@@ -5135,13 +5151,13 @@ let currentInboxQueue = [];
 window.renderInboxCandidates = () => {
     const searchTerm = getEffectiveQuery('inbox');
     const listContainer = document.getElementById('inbox-candidate-list');
-    if (!listContainer || !currentInboxJobId) return;
+    if (!listContainer || !window.currentInboxJobId) return;
 
-    const job = cachedJobs.find(j => j.id === currentInboxJobId);
-    let candidates = cachedTalentPool.filter(c => c.jobId === currentInboxJobId);
+    const job = cachedJobs.find(j => j.id === window.currentInboxJobId);
+    let candidates = cachedTalentPool.filter(c => c.jobId === window.currentInboxJobId);
     const rejectedStages = ['REJECTED', 'Rejected', 'Backed Out', 'Not Interested'];
-    const shortlistedCandidates = cachedCandidates.filter(c => c.jobId === currentInboxJobId && !rejectedStages.includes(c.stage));
-    const rejectedCandidates = cachedCandidates.filter(c => c.jobId === currentInboxJobId && rejectedStages.includes(c.stage));
+    const shortlistedCandidates = cachedCandidates.filter(c => c.jobId === window.currentInboxJobId && !rejectedStages.includes(c.stage));
+    const rejectedCandidates = cachedCandidates.filter(c => c.jobId === window.currentInboxJobId && rejectedStages.includes(c.stage));
 
     // Apply Folder Filter
     if (currentInboxFilter === 'all') candidates = candidates; // now just refers to talentpool candidates
@@ -5162,8 +5178,8 @@ window.renderInboxCandidates = () => {
     currentInboxQueue = candidates; // Store for navigation
 
     // Update Counts
-    document.getElementById('count-all').innerText = cachedTalentPool.filter(c => c.jobId === currentInboxJobId).length;
-    document.getElementById('count-new').innerText = cachedTalentPool.filter(c => c.jobId === currentInboxJobId && c.isNew).length;
+    document.getElementById('count-all').innerText = cachedTalentPool.filter(c => c.jobId === window.currentInboxJobId).length;
+    document.getElementById('count-new').innerText = cachedTalentPool.filter(c => c.jobId === window.currentInboxJobId && c.isNew).length;
     document.getElementById('count-shortlisted').innerText = shortlistedCandidates.length;
     document.getElementById('count-rejected').innerText = rejectedCandidates.length;
 
