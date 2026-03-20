@@ -1,4 +1,4 @@
-import { 
+import {
     auth, db, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
     collection, addDoc, getDocs, getDoc, doc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, setDoc, query, where, orderBy, writeBatch
 } from "./firebase_config.js";
@@ -129,10 +129,10 @@ function computeSearchCount(query) {
     if (!query) return 0;
     const q = query.toLowerCase();
     let count = 0;
-    count += cachedCandidates.filter(c => 
-        ((c.name || '').toLowerCase().includes(q) || 
-         (c.email || '').toLowerCase().includes(q) || 
-         (c.phone || '').toLowerCase().includes(q))
+    count += cachedCandidates.filter(c =>
+    ((c.name || '').toLowerCase().includes(q) ||
+        (c.email || '').toLowerCase().includes(q) ||
+        (c.phone || '').toLowerCase().includes(q))
     ).length;
     count += cachedJobs.filter(j => (j.title || '').toLowerCase().includes(q) || (j.department || '').toLowerCase().includes(q)).length;
     count += cachedCompanies.filter(c => (c.name || '').toLowerCase().includes(q)).length;
@@ -465,7 +465,7 @@ function setupRealtimeListeners() {
     const candidateQuery = collection(db, "candidates");
     onSnapshot(candidateQuery, (snapshot) => {
         cachedCandidates = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
+
         // Populate cachedTalentPool by filtering cachedCandidates
         cachedTalentPool = cachedCandidates.filter(c => c.inTalentPool);
 
@@ -1683,7 +1683,7 @@ function renderDashboardTasks() {
         const subtasks = t.subtasks || [];
         const doneSubtasks = subtasks.filter(s => s.done).length;
         const progress = subtasks.length > 0 ? (doneSubtasks / subtasks.length) * 100 : 0;
-        
+
         const staggerClass = index < 5 ? `animate-fade-up stagger-${index + 1}` : '';
 
         return `
@@ -1945,7 +1945,7 @@ window.editJob = (id) => {
     openModal('modal-job');
 };
 
-// Cloudinary Config
+// Cloudinary Config (Default fallback, dynamic values picked from portalSettings when available)
 const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/drz2jldgj/auto/upload';
 const CLOUDINARY_PRESET = 'resume_uploads'; // <--- IMPORTANT: User must create this unsigned preset
 let pendingResumeFile = null;
@@ -1971,15 +1971,30 @@ window.clearResumeSelection = () => {
 async function uploadResumeToCloudinary(file, publicId) {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', CLOUDINARY_PRESET);
+
+    // Attempt to load dynamic portal settings if available
+    let dynamicUrl = CLOUDINARY_URL;
+    let dynamicPreset = CLOUDINARY_PRESET;
+    try {
+        const portalDoc = await window.getDoc(window.doc(window.db, "settings", "publicPortal"));
+        if (portalDoc.exists()) {
+            const pData = portalDoc.data();
+            if (pData.cloudinaryUrl) dynamicUrl = pData.cloudinaryUrl;
+            if (pData.cloudinaryPreset) dynamicPreset = pData.cloudinaryPreset;
+        }
+    } catch (e) {
+        console.warn("Could not load dynamic Cloudinary settings, falling back to defaults.", e);
+    }
+
+    formData.append('upload_preset', dynamicPreset);
     formData.append('resource_type', 'raw'); // Better for Docs/PDFs
     formData.append('folder', 'resume_uploads');
     if (publicId) formData.append('public_id', publicId);
 
-    console.log('Uploading to Cloudinary...', { url: CLOUDINARY_URL, preset: CLOUDINARY_PRESET });
+    console.log('Uploading to Cloudinary...', { url: dynamicUrl, preset: dynamicPreset });
 
     try {
-        const res = await fetch(CLOUDINARY_URL.replace('/auto/', '/raw/'), {
+        const res = await fetch(dynamicUrl.replace('/auto/', '/raw/'), {
             method: 'POST',
             body: formData,
             mode: 'cors'
@@ -2405,12 +2420,12 @@ window.editWaTemplate = (id) => {
 window.updateCandidateStage = async (id, stage) => {
     try {
         const poolStages = ['Backed Out', 'Not Interested', 'Applied'];
-        const updateData = { 
-            stage, 
-            inTalentPool: poolStages.includes(stage), 
-            isNew: false 
+        const updateData = {
+            stage,
+            inTalentPool: poolStages.includes(stage),
+            isNew: false
         };
-        
+
         if (stage === 'Hired') {
             updateData.hiredAt = serverTimestamp();
         }
@@ -2418,10 +2433,10 @@ window.updateCandidateStage = async (id, stage) => {
         if (stage === 'Selected') {
             const cand = cachedCandidates.find(c => c.id === id);
             const job = cand ? cachedJobs.find(j => j.id === cand.jobId) : null;
-            
+
             // Check if offer already exists to avoid duplicates
             const existingOffer = cachedOffers.find(o => o.candidateId === id);
-            
+
             if (!existingOffer) {
                 await addDoc(collection(db, "offers"), {
                     candidateId: id,
@@ -3593,7 +3608,7 @@ window.showSection = async (sectionId) => {
     if (pendingInitialLoads === 0) {
         showLoader();
     }
-    
+
     try {
         // Reduced delay for snappier feel
         await new Promise(resolve => setTimeout(resolve, 200));
@@ -3606,8 +3621,8 @@ window.showSection = async (sectionId) => {
         if (navBtn) navBtn.classList.add('sidebar-item-active');
 
         const sectionInfo = {
-            'dashboard': { 
-                title: 'Dashboard', 
+            'dashboard': {
+                title: 'Dashboard',
                 subtitle: 'Quick overview of your recruitment activities',
                 actions: [
                     { label: 'Add Candidate', icon: 'fa-user-plus', color: 'bg-blue-600', onclick: "openModal('modal-candidate')" },
@@ -3616,78 +3631,78 @@ window.showSection = async (sectionId) => {
                     { label: 'Calculator', icon: 'fa-calculator', color: 'bg-slate-700', onclick: "toggleCalculator()" }
                 ]
             },
-            'tasks': { 
-                title: 'HR Task Board', 
+            'tasks': {
+                title: 'HR Task Board',
                 subtitle: 'Coordinate your team\'s internal recruitment tasks',
                 actions: [
                     { label: 'New Task', icon: 'fa-plus', color: 'bg-orange-500', onclick: "openAddTaskModal()" },
                     { label: 'Calculator', icon: 'fa-calculator', color: 'bg-slate-700', onclick: "toggleCalculator()" }
                 ]
             },
-            'companies': { 
-                title: 'Companies', 
+            'companies': {
+                title: 'Companies',
                 subtitle: 'Manage partner companies and organizational info',
                 actions: [
                     { label: 'Add Company', icon: 'fa-plus', color: 'bg-blue-600', onclick: "document.getElementById('form-company').reset(); document.getElementById('form-company-id').value = ''; document.getElementById('modal-company-title').innerText = 'Add Company'; openModal('modal-company')" },
                     { label: 'Calculator', icon: 'fa-calculator', color: 'bg-slate-700', onclick: "toggleCalculator()" }
                 ]
             },
-            'jobs': { 
-                title: 'Job Management', 
+            'jobs': {
+                title: 'Job Management',
                 subtitle: 'Manage job openings and active listings',
                 actions: [
                     { label: 'Create Job', icon: 'fa-plus', color: 'bg-blue-600', onclick: "document.getElementById('form-job').reset(); document.getElementById('form-job-id').value = ''; openModal('modal-job')" },
                     { label: 'Calculator', icon: 'fa-calculator', color: 'bg-slate-700', onclick: "toggleCalculator()" }
                 ]
             },
-            'candidates': { 
-                title: 'Candidate Database', 
+            'candidates': {
+                title: 'Candidate Database',
                 subtitle: 'Unified view of all candidate profiles',
                 actions: [
                     { label: 'Add Candidate', icon: 'fa-user-plus', color: 'bg-blue-600', onclick: "openModal('modal-candidate')" },
                     { label: 'Calculator', icon: 'fa-calculator', color: 'bg-slate-700', onclick: "toggleCalculator()" }
                 ]
             },
-            'talentpool': { 
-                title: 'Manage Responses', 
+            'talentpool': {
+                title: 'Manage Responses',
                 subtitle: 'Track candidate responses across open positions',
                 actions: [
                     { label: 'Post Job', icon: 'fa-plus', color: 'bg-blue-600', onclick: "showSection('jobs')" },
                     { label: 'Calculator', icon: 'fa-calculator', color: 'bg-slate-700', onclick: "toggleCalculator()" }
                 ]
             },
-            'interviews': { 
-                title: 'Interview Scheduler', 
+            'interviews': {
+                title: 'Interview Scheduler',
                 subtitle: 'Coordinate and track candidate interviews',
                 actions: [
                     { label: 'Schedule Interview', icon: 'fa-plus', color: 'bg-blue-600', onclick: "openAddInterviewModal()" },
                     { label: 'Calculator', icon: 'fa-calculator', color: 'bg-slate-700', onclick: "toggleCalculator()" }
                 ]
             },
-            'offers': { 
-                title: 'Offer Management', 
+            'offers': {
+                title: 'Offer Management',
                 subtitle: 'Track and manage the final lifecycle of selection',
                 actions: [
                     { label: 'Calculator', icon: 'fa-calculator', color: 'bg-slate-700', onclick: "toggleCalculator()" }
                 ]
             },
-            'messaging': { 
-                title: 'Communications', 
+            'messaging': {
+                title: 'Communications',
                 subtitle: 'Automate candidate messaging and templates',
                 actions: [
                     { label: 'New Template', icon: 'fa-plus', color: 'bg-blue-600', onclick: "document.getElementById('form-wa-template').reset(); document.getElementById('form-wa-template-id').value = ''; document.getElementById('modal-wa-template-title').innerText = 'Create Messaging Template'; openModal('modal-wa-template')" },
                     { label: 'Calculator', icon: 'fa-calculator', color: 'bg-slate-700', onclick: "toggleCalculator()" }
                 ]
             },
-            'reports': { 
-                title: 'Reports & Data Export', 
+            'reports': {
+                title: 'Reports & Data Export',
                 subtitle: 'Analyze recruitment performance and export data',
                 actions: [
                     { label: 'Calculator', icon: 'fa-calculator', color: 'bg-slate-700', onclick: "toggleCalculator()" }
                 ]
             },
-            'portalsettings': { 
-                title: 'Public Portal Settings', 
+            'portalsettings': {
+                title: 'Public Portal Settings',
                 subtitle: 'Configure how candidates see your career page',
                 actions: [
                     { label: 'Calculator', icon: 'fa-calculator', color: 'bg-slate-700', onclick: "toggleCalculator()" }
@@ -3699,7 +3714,7 @@ window.showSection = async (sectionId) => {
         const info = sectionInfo[sectionId] || { title: (sectionId.charAt(0).toUpperCase() + sectionId.slice(1)), subtitle: '', actions: [] };
         const titleEl = document.getElementById('section-title');
         const subtitleEl = document.getElementById('section-subtitle');
-        
+
         if (titleEl) titleEl.innerText = info.title;
         if (subtitleEl) subtitleEl.innerText = info.subtitle;
 
@@ -3770,7 +3785,7 @@ function updateFAB(actions) {
     const fabContainer = document.getElementById('fab-container');
     const fabMenu = document.getElementById('fab-menu');
     const fabMain = document.getElementById('fab-main');
-    
+
     if (!fabContainer || !fabMenu || !fabMain) return;
 
     if (!actions || actions.length === 0) {
@@ -3907,15 +3922,15 @@ window.renderTasks = () => {
             const status = (task.status || 'todo').toLowerCase().replace(' ', '');
             if (columns[status]) {
                 listCounts[status]++;
-                
+
                 // Priority Styles
                 const priorityClass = { 'Low': 'tag-low', 'Medium': 'tag-medium', 'High': 'tag-high', 'Urgent': 'tag-urgent' }[task.priority] || 'tag-low';
-                
+
                 // Subtasks Progress
                 const subtasks = task.subtasks || [];
                 const doneSubtasks = subtasks.filter(s => s.done).length;
                 const progress = subtasks.length > 0 ? (doneSubtasks / subtasks.length) * 100 : 0;
-                
+
                 // Tags
                 const tagsStr = (task.tags || '').split(',').map(t => t.trim()).filter(t => t);
                 const tagsHtml = tagsStr.map(t => `<span class="tag-badge bg-slate-100 dark:bg-slate-800 text-slate-500 mr-1">${t}</span>`).join('');
@@ -3982,7 +3997,7 @@ window.dropTask = async (e, status) => {
     const id = e.dataTransfer.getData('taskId');
     const cols = document.querySelectorAll('.kanban-column');
     cols.forEach(c => c.classList.remove('drag-over'));
-    
+
     // Remove dragging class from all cards (just in case)
     document.querySelectorAll('.task-card').forEach(c => c.classList.remove('dragging'));
 
@@ -3996,10 +4011,10 @@ window.openAddTaskModal = () => {
     if (form) form.reset();
     const idInput = document.getElementById('form-task-id');
     if (idInput) idInput.value = '';
-    
+
     document.getElementById('task-subtasks-container').innerHTML = '';
     document.getElementById('modal-task-title').innerHTML = '<i class="fas fa-list-check"></i> Add New Task';
-    
+
     openModal('modal-task');
 };
 
@@ -4032,11 +4047,11 @@ window.editTask = (id) => {
 };
 
 window.moveTask = async (id, status) => {
-    try { 
+    try {
         const task = cachedTasks.find(t => t.id === id);
         if (task && task.status === status) return; // No change
-        await updateDoc(doc(db, "tasks", id), { status }); 
-        showToast("Moved to " + status); 
+        await updateDoc(doc(db, "tasks", id), { status });
+        showToast("Moved to " + status);
     } catch (e) { showError("Failed to move task"); }
 };
 
@@ -4069,14 +4084,14 @@ window.renderOffers = () => {
     if (document.getElementById('offer-stat-signed')) document.getElementById('offer-stat-signed').innerText = signedOffers;
 
     const searchTerm = getEffectiveQuery('offers');
-    
+
     let filteredOffers = cachedOffers;
     if (currentOfferFilter !== 'all') {
         filteredOffers = filteredOffers.filter(o => (o.status || 'Pending') === currentOfferFilter);
     }
-    
+
     if (searchTerm) {
-        filteredOffers = filteredOffers.filter(o => 
+        filteredOffers = filteredOffers.filter(o =>
             (o.candidateName || '').toLowerCase().includes(searchTerm) ||
             (o.jobTitle || '').toLowerCase().includes(searchTerm)
         );
@@ -4098,7 +4113,7 @@ window.renderOffers = () => {
         const cand = cachedCandidates.find(c => c.id === o.candidateId);
         const job = cachedJobs.find(j => j.id === o.jobId);
         const status = o.status || 'Pending';
-        
+
         const statusConfig = {
             'Pending': { icon: 'fa-clock', color: 'orange', label: 'Preparation' },
             'Sent': { icon: 'fa-paper-plane', color: 'indigo', label: 'Offer Sent' },
@@ -4191,7 +4206,7 @@ window.sendOfferWhatsApp = (id) => {
     const o = cachedOffers.find(x => x.id === id);
     const cand = cachedCandidates.find(c => c.id === o?.candidateId);
     if (!cand || !cand.phone) return showToast("No phone number registered", "error");
-    
+
     const message = `Dear ${cand.name}, we are pleased to inform you that we've forwarded your offer letter for the ${o.jobTitle} position. Please check your email. Looking forward to having you on the team!`;
     const url = `https://wa.me/${cand.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
@@ -4201,7 +4216,7 @@ window.sendOfferEmail = (id) => {
     const o = cachedOffers.find(x => x.id === id);
     const cand = cachedCandidates.find(c => c.id === o?.candidateId);
     if (!cand || !cand.email) return showToast("No email registered", "error");
-    
+
     const subject = `Offer Letter - ${o.jobTitle} | Recruitment Team`;
     const body = `Dear ${cand.name},\n\nWe are excited to share your offer letter for the position of ${o.jobTitle}. Please find the details attached.\n\nBest Regards,\nRecruitment Team`;
     const url = `mailto:${cand.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -4227,7 +4242,7 @@ window.updateOfferStatus = async (id, status) => {
                 showToast("Candidate marked as HIRED!");
             }
         }
-        
+
         showToast(status);
         renderOffers();
     } catch (e) {
@@ -4240,48 +4255,18 @@ window.loadPortalSettings = async () => {
     if (!container) return;
     try {
         const docSnap = await getDoc(doc(db, "settings", "publicPortal"));
-        const DEFAULT_STEPS = [
-            { id: 'personal', label: 'Personal Details', icon: 'fa-user', desc: 'Name, email, phone, gender, address' },
-            { id: 'professional', label: 'Professional Details', icon: 'fa-briefcase', desc: 'Company, designation, experience' },
-            { id: 'position', label: 'Applied Position', icon: 'fa-layer-group', desc: 'Department & job selection' },
-            { id: 'financials', label: 'CTC & Financials', icon: 'fa-indian-rupee-sign', desc: 'Current CTC, expected CTC, notice period' },
-            { id: 'resume', label: 'Resume Upload', icon: 'fa-file-lines', desc: 'PDF/DOC upload via Cloudinary' },
-            { id: 'review', label: 'Review & Submit', icon: 'fa-circle-check', desc: 'Final review before submission' }
-        ];
-
-        const rawData = docSnap.exists() ? docSnap.data() : {};
-
-        // Merge defaults so steps always exist even for older Firestore docs
-        const savedSteps = rawData.steps || [];
-        const mergedSteps = DEFAULT_STEPS.map(def => {
-            const saved = savedSteps.find(s => s.id === def.id);
-            return { ...def, enabled: saved ? saved.enabled : true };
-        });
-
         const data = {
             companyPrompt: 'Join our team!',
             primaryColor: '#3b82f6',
             isLocked: false,
-            openCompanies: [],
-            openDepartments: [],
-            openPositions: [],
             logoUrl: '',
             backgroundUrl: '',
             fontFamily: 'Inter, sans-serif',
-            fields: {
-                phone: { required: true },
-                currentCTC: { required: true },
-                expectedCTC: { required: true },
-                noticePeriod: { required: true }
-            },
-            ...rawData,
-            steps: mergedSteps
+            companyName: 'Brawn Laboratories Ltd', // Default Brand Name
+            cloudinaryUrl: '',
+            cloudinaryPreset: '',
+            ...(docSnap.exists() ? docSnap.data() : {})
         };
-
-        // Build company/dept/position lists
-        const allCompanies = cachedCompanies.map(c => ({ id: c.id, name: c.name || c.id })).sort((a, b) => a.name.localeCompare(b.name));
-        const allDepts = [...new Set(cachedJobs.map(j => j.department).filter(Boolean))].sort();
-        const allPositions = [...new Set(cachedJobs.map(j => j.title).filter(Boolean))].sort();
 
         container.innerHTML = `
                 <form id="form-portal-settings" class="w-full space-y-6">
@@ -4295,10 +4280,10 @@ window.loadPortalSettings = async () => {
                                 </h4>
                                 <p class="text-sm text-slate-500 mt-1">Manage branding, visibility, and access for your public career page.</p>
                                 <div class="mt-3 flex items-center gap-3">
-                                    <a href="Candidate/candidate_portal.html" target="_blank" class="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded-lg border border-blue-100 dark:border-blue-800 transition-all">
+                                    <a href="Candidate/" target="_blank" class="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded-lg border border-blue-100 dark:border-blue-800 transition-all">
                                         <i class="fas fa-external-link-alt"></i> View Live Portal
                                     </a>
-                                    <span class="text-[10px] font-mono text-slate-400 opacity-70">./Candidate/candidate_portal.html</span>
+                                    <span class="text-[10px] font-mono text-slate-400 opacity-70">./Candidate/</span>
                                 </div>
                             </div>
                             <div class="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
@@ -4314,35 +4299,17 @@ window.loadPortalSettings = async () => {
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
                             <!-- Left Column: Branding -->
                             <div class="space-y-6">
-                                <h4 class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                                    <i class="fas fa-palette text-blue-500"></i> Visual Branding
-                                </h4>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div class="space-y-1.5">
-                                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Theme Color</label>
-                                        <div class="flex items-center gap-3">
-                                            <input type="color" name="primaryColor" value="${data.primaryColor || '#3b82f6'}" class="w-12 h-12 rounded-xl cursor-pointer border-none p-0 bg-transparent">
-                                            <input type="text" value="${data.primaryColor || '#3b82f6'}" readonly class="theme-input !bg-slate-50 !border-none font-mono text-sm">
-                                        </div>
-                                    </div>
-                                    <div class="space-y-1.5">
-                                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Logo URL</label>
-                                        <input type="text" name="logoUrl" value="${data.logoUrl || ''}" placeholder="https://..." class="theme-input">
-                                    </div>
-                                    <div class="space-y-1.5">
-                                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Font Family</label>
-                                        <select name="fontFamily" class="theme-input appearance-none">
-                                            <option value="Inter, sans-serif" ${data.fontFamily === 'Inter, sans-serif' ? 'selected' : ''}>Inter (Modern)</option>
-                                            <option value="'Calibri', 'Segoe UI', sans-serif" ${data.fontFamily === "'Calibri', 'Segoe UI', sans-serif" ? 'selected' : ''}>Calibri (Office)</option>
-                                            <option value="'Roboto', sans-serif" ${data.fontFamily === "'Roboto', sans-serif" ? 'selected' : ''}>Roboto</option>
-                                            <option value="'Outfit', sans-serif" ${data.fontFamily === "'Outfit', sans-serif" ? 'selected' : ''}>Outfit (Premium)</option>
-                                        </select>
-                                    </div>
+                                <div>
+                                    <h4 class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2 mb-1">
+                                        <i class="fas fa-palette text-blue-500"></i> Visual Branding
+                                    </h4>
+                                    <p class="text-xs text-slate-400">Customize the look and feel of your candidate experience.</p>
                                 </div>
                                 <div class="space-y-1.5">
-                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Background URL</label>
-                                    <div class="flex flex-col gap-3">
-                                        <input type="text" name="backgroundUrl" id="background-url-input" value="${data.backgroundUrl || ''}" placeholder="https://..." class="theme-input">
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Theme Color</label>
+                                    <div class="flex items-center gap-3">
+                                        <input type="color" name="primaryColor" value="${data.primaryColor || '#3b82f6'}" class="h-10 w-16 p-1 rounded cursor-pointer theme-input">
+                                        <input type="text" value="${data.primaryColor || '#3b82f6'}" class="theme-input flex-1 font-mono text-xs uppercase" readonly>
                                     </div>
                                 </div>
                                 <div class="space-y-1.5">
@@ -4384,124 +4351,24 @@ window.loadPortalSettings = async () => {
                                     </div>
                                 </div>
 
-                            </div>
-                        </div>
-
-                        <!-- Full-Width: Open Companies / Departments / Positions -->
-                        <div class="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
-
-                                    <!-- OPEN COMPANIES -->
-                                    <div class="space-y-3">
-                                        <div class="flex justify-between items-center">
-                                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Open Companies</label>
-                                            <div class="flex gap-2">
-                                                <button type="button" id="btn-company-all" class="text-[9px] font-bold text-blue-600 hover:underline px-2 py-1 rounded bg-blue-50">Select All</button>
-                                                <button type="button" id="btn-company-clear" class="text-[9px] font-bold text-slate-500 hover:underline px-2 py-1 rounded bg-slate-100">Clear All</button>
-                                            </div>
+                                <!-- Cloudinary Config -->
+                                <div class="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800 text-slate-400">
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><i class="fas fa-cloud-upload-alt text-blue-500"></i> Cloudinary Integration</label>
+                                    <p class="text-[10px] mb-2 leading-relaxed">Configure where resumes are uploaded. If left blank, the system's hardcoded default Cloudinary account will be used.</p>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div class="space-y-1.5">
+                                            <label class="block text-[9px] font-bold uppercase tracking-widest">API Upload URL</label>
+                                            <input type="url" name="cloudinaryUrl" value="${data.cloudinaryUrl || ''}" placeholder="https://api.cloudinary.com/v1_1/.../upload" class="theme-input text-xs">
                                         </div>
-                                        <div id="portal-company-checks" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 min-h-[60px]">
-                                            ${allCompanies.map(c => `
-                                                <label class="flex items-center gap-2.5 bg-white dark:bg-slate-800 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:border-purple-300 hover:bg-purple-50/30 transition-all select-none">
-                                                    <input type="checkbox" name="openCompanies" value="${c.id}" ${(data.openCompanies || []).includes(c.id) ? 'checked' : ''} class="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 transition-all">
-                                                    <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">${c.name}</span>
-                                                </label>
-                                            `).join('')}
-                                            ${allCompanies.length === 0 ? '<p class="text-[10px] text-slate-400 py-2">No companies found</p>' : ''}
+                                        <div class="space-y-1.5">
+                                            <label class="block text-[9px] font-bold uppercase tracking-widest">Upload Preset</label>
+                                            <input type="text" name="cloudinaryPreset" value="${data.cloudinaryPreset || ''}" placeholder="resume_uploads" class="theme-input text-xs">
                                         </div>
                                     </div>
+                                </div>
 
-                                    <!-- OPEN DEPARTMENTS -->
-                                    <div class="space-y-3">
-                                        <div class="flex justify-between items-center">
-                                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Open Departments</label>
-                                            <div class="flex items-center gap-3">
-                                                <span id="dept-filter-hint" class="text-[9px] font-bold text-purple-500/60 uppercase tracking-tight"></span>
-                                                <div class="flex gap-2">
-                                                    <button type="button" id="btn-dept-all" class="text-[9px] font-bold text-blue-600 hover:underline px-2 py-1 rounded bg-blue-50">Select All</button>
-                                                    <button type="button" id="btn-dept-clear" class="text-[9px] font-bold text-slate-500 hover:underline px-2 py-1 rounded bg-slate-100">Clear All</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div id="portal-dept-checks" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 min-h-[60px]">
-                                            <!-- Content updated by JS -->
-                                        </div>
-                                    </div>
-
-                                    <!-- OPEN POSITIONS -->
-                                    <div class="space-y-3">
-                                        <div class="flex justify-between items-center">
-                                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Open Positions</label>
-                                            <div class="flex items-center gap-3">
-                                                <span id="pos-filter-hint" class="text-[9px] font-bold text-blue-500/60 uppercase tracking-tight"></span>
-                                                <div class="flex gap-2">
-                                                    <button type="button" id="btn-pos-all" class="text-[9px] font-bold text-blue-600 hover:underline px-2 py-1 rounded bg-blue-50">Select All</button>
-                                                    <button type="button" id="btn-pos-clear" class="text-[9px] font-bold text-slate-500 hover:underline px-2 py-1 rounded bg-slate-100">Clear All</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div id="portal-pos-checks" class="max-h-[180px] overflow-y-auto flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
-                                            <!-- Content updated by JS -->
-                                        </div>
-                                    </div>
-                        </div>
-
-                         <!-- Wizard & Validation -->
-                        <div class="space-y-6 mt-8 pt-8 border-t border-slate-100 dark:border-slate-800">
-                          <div>
-                            <h4 class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2 mb-1">
-                              <i class="fas fa-route text-blue-500"></i> Wizard & Validation
-                            </h4>
-                            <p class="text-xs text-slate-400">Control which steps appear in the candidate application form and which fields are mandatory.</p>
-                          </div>
-
-                          <!-- Steps -->
-                          <div class="space-y-2">
-                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Application Steps</p>
-                            <p class="text-[11px] text-slate-400 mb-2">Toggle off any step to hide it from candidates. <span class="font-semibold text-blue-500">Personal Details</span> and <span class="font-semibold text-blue-500">Review & Submit</span> are always shown.</p>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                              ${(data.steps || []).map(s => `
-                                <label data-portal-step-row data-step-id="${s.id}"
-                                       class="flex items-center gap-3 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 cursor-pointer hover:border-blue-300 hover:bg-blue-50/20 transition-all group select-none">
-                                  <div class="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
-                                    <i class="fas ${s.icon || 'fa-circle-dot'} text-blue-500 text-sm"></i>
-                                  </div>
-                                  <div class="flex-1 min-w-0">
-                                    <div class="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">${s.label}</div>
-                                    <div class="text-[10px] text-slate-400 truncate mt-0.5">${s.desc || ''}</div>
-                                  </div>
-                                  <div class="relative shrink-0">
-                                    <input type="checkbox" name="stepEnabled-${s.id}" ${s.enabled ? 'checked' : ''}
-                                           class="sr-only peer">
-                                    <div class="w-9 h-5 bg-slate-200 peer-checked:bg-blue-500 rounded-full transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4"></div>
-                                  </div>
-                                </label>
-                              `).join('')}
                             </div>
-                          </div>
-
-                          <!-- Required Fields -->
-                          <div class="space-y-2">
-                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mandatory Fields</p>
-                            <p class="text-[11px] text-slate-400 mb-2">Checked fields will block form submission if left empty by the candidate.</p>
-                            <div class="flex flex-wrap gap-3">
-                              ${[
-                { id: 'phone', label: 'Phone (WhatsApp)', icon: 'fa-phone', desc: 'Required for WhatsApp outreach' },
-                { id: 'currentCTC', label: 'Current CTC', icon: 'fa-indian-rupee-sign', desc: 'Present salary' },
-                { id: 'expectedCTC', label: 'Expected CTC', icon: 'fa-arrow-trend-up', desc: 'Salary expectation' },
-                { id: 'noticePeriod', label: 'Notice Period', icon: 'fa-calendar-days', desc: 'Days to join' }
-            ].map(f => `
-                                <label data-portal-field-toggle data-field-id="${f.id}"
-                                       class="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 cursor-pointer hover:border-blue-300 hover:bg-blue-50/20 transition-all select-none">
-                                  <i class="fas ${f.icon} text-blue-400 text-xs w-3"></i>
-                                  <div>
-                                    <div class="text-xs font-bold text-slate-700 dark:text-slate-200">${f.label}</div>
-                                    <div class="text-[10px] text-slate-400">${f.desc}</div>
-                                  </div>
-                                  <input type="checkbox" name="fieldRequired-${f.id}" ${(data.fields?.[f.id]?.required) ? 'checked' : ''} class="w-4 h-4 ml-1 rounded accent-blue-600">
-                                </label>
-                              `).join('')}
                             </div>
-                          </div>
                         </div>
 
                         <div class="pt-6 border-t border-slate-100 dark:border-slate-800">
@@ -4513,174 +4380,23 @@ window.loadPortalSettings = async () => {
                     </div>
                 </form>`;
 
-        // ===== Cascaded Filtering: Company → Department → Position =====
-        const companyContainer = document.getElementById('portal-company-checks');
-        const deptContainer = document.getElementById('portal-dept-checks');
-        const posContainer = document.getElementById('portal-pos-checks');
-        const deptHint = document.getElementById('dept-filter-hint');
-        const posHint = document.getElementById('pos-filter-hint');
-
-        // Master selection sets (persisted across re-renders)
-        const selectedCompanyIds = new Set(data.openCompanies || []);
-        const selectedDeptNames = new Set(data.openDepartments || []);
-        const selectedPositionTitles = new Set(data.openPositions || []);
-
-        const renderDepts = () => {
-            // Save current dept selections from DOM first
-            deptContainer.querySelectorAll('input[name="openDepartments"]').forEach(i => {
-                if (i.checked) selectedDeptNames.add(i.value);
-                else selectedDeptNames.delete(i.value);
-            });
-
-            const selCompanies = Array.from(selectedCompanyIds);
-            let filteredDepts = [];
-            if (selCompanies.length === 0) {
-                filteredDepts = allDepts;
-                if (deptHint) deptHint.innerText = '';
-            } else {
-                // Jobs belonging to selected companies
-                const jobsInCompanies = cachedJobs.filter(j => selCompanies.includes(j.companyId));
-                filteredDepts = [...new Set(jobsInCompanies.map(j => j.department).filter(Boolean))].sort();
-                if (deptHint) deptHint.innerText = `Filtered for ${selCompanies.length} Co.`;
-            }
-
-            if (filteredDepts.length === 0) {
-                deptContainer.innerHTML = '<p class="text-[10px] text-slate-400 py-2 w-full text-center">No departments for selected companies</p>';
-            } else {
-                deptContainer.innerHTML = filteredDepts.map(d => `
-                            <label class="flex items-center gap-2.5 bg-white dark:bg-slate-800 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-all select-none animate-in fade-in zoom-in duration-200">
-                                <input type="checkbox" name="openDepartments" value="${d}" ${selectedDeptNames.has(d) ? 'checked' : ''} class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 transition-all">
-                                <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">${d}</span>
-                            </label>
-                        `).join('');
-            }
-
-            // Re-attach dept change listeners after re-render
-            deptContainer.querySelectorAll('input[name="openDepartments"]').forEach(i => i.addEventListener('change', () => {
-                if (i.checked) selectedDeptNames.add(i.value); else selectedDeptNames.delete(i.value);
-                renderPositions();
-            }));
-
-            renderPositions();
-        };
-
-        const renderPositions = () => {
-            // Save current position selections from DOM first
-            posContainer.querySelectorAll('input[name="openPositions"]').forEach(i => {
-                if (i.checked) selectedPositionTitles.add(i.value);
-                else selectedPositionTitles.delete(i.value);
-            });
-
-            const selCompanies = Array.from(selectedCompanyIds);
-            const selDepts = Array.from(selectedDeptNames);
-
-            let baseJobs = cachedJobs;
-            if (selCompanies.length > 0) baseJobs = baseJobs.filter(j => selCompanies.includes(j.companyId));
-            if (selDepts.length > 0) baseJobs = baseJobs.filter(j => selDepts.includes(j.department));
-
-            const filteredPositions = [...new Set(baseJobs.map(j => j.title).filter(Boolean))].sort();
-
-            let hintParts = [];
-            if (selCompanies.length > 0) hintParts.push(`${selCompanies.length} Co.`);
-            if (selDepts.length > 0) hintParts.push(`${selDepts.length} Dept(s)`);
-            if (posHint) posHint.innerText = hintParts.length > 0 ? `Filtered for ${hintParts.join(', ')}` : 'Showing all roles';
-
-            if (filteredPositions.length === 0) {
-                posContainer.innerHTML = '<p class="text-[10px] text-slate-400 py-2 w-full text-center">No matching positions found</p>';
-            } else {
-                posContainer.innerHTML = filteredPositions.map(p => `
-                            <label class="flex items-center gap-2.5 bg-white dark:bg-slate-800 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-all select-none animate-in fade-in zoom-in duration-200">
-                                <input type="checkbox" name="openPositions" value="${p}" ${selectedPositionTitles.has(p) ? 'checked' : ''} class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 transition-all">
-                                <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">${p}</span>
-                            </label>
-                        `).join('');
-            }
-
-            // Track position changes
-            posContainer.querySelectorAll('input[name="openPositions"]').forEach(i => i.addEventListener('change', () => {
-                if (i.checked) selectedPositionTitles.add(i.value); else selectedPositionTitles.delete(i.value);
-            }));
-        };
-
-        // Company checkbox change listeners
-        companyContainer.querySelectorAll('input[name="openCompanies"]').forEach(i => i.addEventListener('change', () => {
-            if (i.checked) selectedCompanyIds.add(i.value); else selectedCompanyIds.delete(i.value);
-            renderDepts();
-        }));
-
-        // Bulk: Companies
-        document.getElementById('btn-company-all')?.addEventListener('click', () => {
-            companyContainer.querySelectorAll('input[name="openCompanies"]').forEach(i => { i.checked = true; selectedCompanyIds.add(i.value); });
-            renderDepts();
-        });
-        document.getElementById('btn-company-clear')?.addEventListener('click', () => {
-            companyContainer.querySelectorAll('input[name="openCompanies"]').forEach(i => { i.checked = false; selectedCompanyIds.delete(i.value); });
-            renderDepts();
-        });
-
-        // Bulk: Departments
-        document.getElementById('btn-dept-all')?.addEventListener('click', () => {
-            deptContainer.querySelectorAll('input[name="openDepartments"]').forEach(i => { i.checked = true; selectedDeptNames.add(i.value); });
-            renderPositions();
-        });
-        document.getElementById('btn-dept-clear')?.addEventListener('click', () => {
-            deptContainer.querySelectorAll('input[name="openDepartments"]').forEach(i => { i.checked = false; selectedDeptNames.delete(i.value); });
-            renderPositions();
-        });
-
-        // Bulk: Positions
-        document.getElementById('btn-pos-all')?.addEventListener('click', () => {
-            posContainer.querySelectorAll('input[name="openPositions"]').forEach(i => { i.checked = true; selectedPositionTitles.add(i.value); });
-        });
-        document.getElementById('btn-pos-clear')?.addEventListener('click', () => {
-            posContainer.querySelectorAll('input[name="openPositions"]').forEach(i => { i.checked = false; selectedPositionTitles.delete(i.value); });
-        });
-
-        // Initial render
-        renderDepts();
-
         document.getElementById('form-portal-settings').onsubmit = async (e) => {
             e.preventDefault();
             const fd = new FormData(e.target);
 
-            const openComps = Array.from(selectedCompanyIds);
-
-            const openDepts = [];
-            e.target.querySelectorAll('input[name="openDepartments"]:checked').forEach(i => openDepts.push(i.value));
-
-            const openPosts = Array.from(selectedPositionTitles);
-
-            const stepsConfig = [];
-            e.target.querySelectorAll('[data-portal-step-row]').forEach(row => {
-                const id = row.getAttribute('data-step-id');
-                const enabled = row.querySelector('input[type="checkbox"]').checked;
-                const existing = (data.steps || []).find(s => s.id === id) || { id, label: id, enabled: true };
-                stepsConfig.push({ id, label: existing.label, enabled });
-            });
-            const fieldsConfig = {};
-            ['phone', 'currentCTC', 'expectedCTC', 'noticePeriod'].forEach(f => {
-                const checked = e.target.querySelector(`input[name="fieldRequired-${f}"]`)?.checked || false;
-                fieldsConfig[f] = { required: checked };
-            });
-
             const s = {
                 primaryColor: fd.get('primaryColor'),
                 companyPrompt: fd.get('companyPrompt'),
-                logoUrl: fd.get('logoUrl'),
-                backgroundUrl: fd.get('backgroundUrl'),
-                fontFamily: fd.get('fontFamily'),
                 // UX fields removed as per request
                 aboutCompany: fd.get('aboutCompany'),
                 supportEmail: fd.get('supportEmail'),
                 supportPhone: fd.get('supportPhone'),
                 socialLinkedin: fd.get('socialLinkedin'),
+                // Cloudinary Config
+                cloudinaryUrl: fd.get('cloudinaryUrl'),
+                cloudinaryPreset: fd.get('cloudinaryPreset'),
                 // Social links removed as per request
                 isLocked: e.target.querySelector('input[name="isLocked"]').checked,
-                openCompanies: openComps,
-                openDepartments: openDepts,
-                openPositions: openPosts,
-                steps: stepsConfig,
-                fields: fieldsConfig,
                 updatedAt: serverTimestamp()
             };
 
@@ -5012,14 +4728,14 @@ window.renderTalentPool = () => {
             if (titleEl) titleEl.innerText = job.title;
             if (subtitleEl) subtitleEl.innerHTML = `<i class="fas fa-map-marker-alt mr-1"></i> ${job.location} • <span class="badge badge-blue !py-0 !px-2 text-[9px] ml-1">${job.status || 'Active'}</span>`;
         }
-        
+
         // Hide FAB in inbox
         const fab = document.getElementById('fab-container');
         if (fab) fab.classList.add('hidden');
 
         // Render the candidates for this job
         if (typeof renderInboxCandidates === 'function') renderInboxCandidates();
-        
+
         // Always render the job list in the background so it's ready for toggle back
     } else {
         // ENFORCE OVERVIEW VIEW
