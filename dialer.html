@@ -136,16 +136,20 @@
                     <p class="text-slate-400 mt-2 text-lg" id="candidate-phone">0000000000</p>
                 </div>
 
-                <div class="relative py-8">
-                    <div class="pulse-ring"></div>
-                    <div class="pulse-ring" style="animation-delay: 0.5s"></div>
-                    <div class="pulse-ring" style="animation-delay: 1s"></div>
-                    <div class="dial-button">
-                        <i class="fas fa-phone text-3xl text-white"></i>
+                <div class="relative py-4 flex flex-col items-center gap-6">
+                    <button id="manual-dial-btn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-5 rounded-2xl font-black text-xl shadow-xl shadow-emerald-600/20 active:scale-95 transition-all flex items-center justify-center gap-3">
+                        <i class="fas fa-phone"></i> TAP TO CALL
+                    </button>
+                    <div class="relative w-24 h-24">
+                        <div class="pulse-ring"></div>
+                        <div class="pulse-ring" style="animation-delay: 1s"></div>
+                        <div class="dial-button">
+                            <i class="fas fa-mobile-screen-button text-3xl text-white"></i>
+                        </div>
                     </div>
                 </div>
 
-                <p class="text-slate-500 text-sm animate-pulse">Automatically dialing...</p>
+                <p class="text-slate-500 text-sm italic">Click the button above to start calling</p>
             </div>
         </div>
 
@@ -164,18 +168,19 @@
     <script type="module">
         import { auth, db, onAuthStateChanged, signInWithEmailAndPassword, signOut, doc, onSnapshot, updateDoc, serverTimestamp } from "./firebase_config.js";
 
-        let currentCallId = null;
+        let swRegistration = null;
 
         // PWA Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js').then(reg => {
                     console.log('SW Registered');
+                    swRegistration = reg;
                 }).catch(err => console.log('SW Fail', err));
             });
         }
 
-        // Notification Permission
+        // Notification Permission & Gesture Unlock
         document.addEventListener('click', () => {
             if (Notification.permission === 'default') {
                 Notification.requestPermission();
@@ -220,11 +225,10 @@
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     if (data.status === 'pending') {
-                        // Check if it's a new call (timestamp within last minute)
                         const now = Date.now();
                         const callTime = data.timestamp ? data.timestamp.toMillis() : now;
                         
-                        if (now - callTime < 10000) { // 10 second window
+                        if (now - callTime < 15000) { // 15 second window
                             triggerCall(data);
                         }
                     }
@@ -239,33 +243,42 @@
             document.getElementById('pending-state').classList.add('hidden');
             document.getElementById('calling-state').classList.remove('hidden');
 
-            // Show Notification if backgrounded
+            // Setup Dial Button
+            const dialBtn = document.getElementById('manual-dial-btn');
+            dialBtn.onclick = () => {
+                window.location.href = "tel:" + data.phoneNumber;
+                resetUI();
+            };
+
+            // Show Notification via SW if possible
             if (Notification.permission === 'granted' && document.visibilityState === 'hidden') {
-                const n = new Notification("Incoming Call Request", {
+                const title = "Incoming Call Request";
+                const options = {
                     body: `Call ${data.candidateName} at ${data.phoneNumber}`,
                     icon: "icon-192.png",
-                    tag: "remote-call"
-                });
-                n.onclick = () => {
-                    window.focus();
-                    window.location.href = "tel:" + data.phoneNumber;
+                    badge: "icon-192.png",
+                    tag: "remote-call",
+                    renotify: true,
+                    vibrate: [200, 100, 200]
                 };
+
+                if (swRegistration) {
+                    swRegistration.showNotification(title, options);
+                } else {
+                    new Notification(title, options);
+                }
             }
 
             // Mark as dialed in Firestore
             const docRef = doc(db, "remote_calls", auth.currentUser.uid);
             await updateDoc(docRef, { status: 'dialed' });
+        }
 
-            // Trigger actual dialer
+        function resetUI() {
             setTimeout(() => {
-                window.location.href = "tel:" + data.phoneNumber;
-                
-                // Reset UI after a delay
-                setTimeout(() => {
-                    document.getElementById('pending-state').classList.remove('hidden');
-                    document.getElementById('calling-state').classList.add('hidden');
-                }, 5000);
-            }, 1500);
+                document.getElementById('pending-state').classList.remove('hidden');
+                document.getElementById('calling-state').classList.add('hidden');
+            }, 3000);
         }
     </script>
 </body>
