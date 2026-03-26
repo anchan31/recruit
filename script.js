@@ -306,10 +306,16 @@ window.toggleAuthView = (view) => {
     if (view === 'forgot') {
         loginView.classList.add('hidden');
         forgotView.classList.remove('hidden');
+        forgotView.classList.add('animate-fade-in');
     } else {
         loginView.classList.remove('hidden');
+        loginView.classList.add('animate-fade-in');
         forgotView.classList.add('hidden');
     }
+};
+
+window.handleSocialLogin = (provider) => {
+    showToast(`${provider} login coming soon! Currently, please use your work email.`);
 };
 
 async function handleLogin() {
@@ -5802,7 +5808,7 @@ async function downloadFormattedExcel(filename, sheetName, columns, rows) {
     showToast("Generating Excel file, please wait...");
     try {
         const workbook = new ExcelJS.Workbook();
-        workbook.creator = 'Recruitment Suite';
+        workbook.creator = 'Nextgen Recruitment Suite';
         workbook.created = new Date();
         
         const sheet = workbook.addWorksheet(sheetName);
