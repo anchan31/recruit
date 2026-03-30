@@ -685,7 +685,9 @@ function renderWaCandidatesChecklist() {
         return;
     }
 
-    container.innerHTML = list.map(c => `
+    container.innerHTML = list.map(c => {
+        const isContact = c.isContact === true;
+        return `
                 <div class="flex items-center justify-between p-3 hover:bg-slate-500/5 rounded border-b last:border-0" style="border-color: var(--border-color)">
                     <div class="flex items-center gap-3">
                         <input type="checkbox" id="wacand-${c.id}" value="${c.id}" class="wa-cand-checkbox h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${whatsappSelectedCandidates.has(c.id) ? 'checked' : ''} onchange="toggleWaCandidate('${c.id}', this.checked)">
@@ -694,9 +696,15 @@ function renderWaCandidatesChecklist() {
                             <div class="text-xs" style="color: var(--text-muted)">${c.phone || 'No Phone Number'}</div>
                         </label>
                     </div>
-                    <div class="badge badge-gray text-[10px] uppercase font-bold tracking-wider">${c.stage}</div>
+                    <div class="flex items-center gap-2">
+                        <span class="badge badge-gray text-[10px] uppercase font-bold tracking-wider">${c.stage}</span>
+                        <button onclick="toggleContactStatus('${c.id}')" class="px-2 py-1 rounded-lg text-[10px] ${isContact ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}">
+                            ${isContact ? 'Remove Contact' : 'Save to Contacts'}
+                        </button>
+                    </div>
                 </div>
-            `).join('');
+            `;
+    }).join('');
 }
 
 window.toggleWaCandidate = (id, isChecked) => {
@@ -930,8 +938,8 @@ function renderJobs() {
 
     let filtered = cachedJobs.filter(j => {
         // Default to Open if no status filter set, and exclude Closed from main list unless explicitly asked
-        const matchStatus = statusFilter === 'all' 
-            ? j.status !== 'Closed' 
+        const matchStatus = statusFilter === 'all'
+            ? j.status !== 'Closed'
             : j.status === statusFilter;
         const matchPriority = priorityFilter === 'all' || j.priority === priorityFilter;
         const matchDept = deptFilter === 'all' || j.department === deptFilter;
@@ -1266,6 +1274,7 @@ function renderCandidates() {
                             <div class="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition">
                                 <button onclick="showCandidateProfile('${c.id}')" class="p-2 text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400 bg-slate-100 dark:bg-slate-800/80 rounded shadow-sm" title="View Profile"><i class="fas fa-eye"></i></button>
                                 ${c.resumeUrl ? `<button onclick="previewResume('${c.resumeUrl}')" class="p-2 text-blue-500 hover:text-blue-600 bg-blue-50 dark:bg-blue-900/30 rounded shadow-sm" title="View Resume Internally"><i class="fas fa-file-pdf"></i></button>` : ''}
+                                <button onclick="toggleContactStatus('${c.id}')" class="p-2 text-${c.isContact ? 'amber' : 'blue'}-500 hover:text-${c.isContact ? 'amber' : 'blue'}-600 bg-${c.isContact ? 'amber' : 'blue'}-50 dark:bg-${c.isContact ? 'amber' : 'blue'}-900/30 rounded shadow-sm" title="${c.isContact ? 'Remove from contacts' : 'Save to contacts'}"><i class="fas ${c.isContact ? 'fa-user-minus' : 'fa-user-plus'}"></i></button>
                                 <button onclick="editCandidate('${c.id}')" class="p-2 text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 bg-slate-100 dark:bg-slate-800/80 rounded shadow-sm" title="Edit Profile"><i class="fas fa-edit"></i></button>
                                 <button onclick="deleteDocById('candidates', '${c.id}')" class="p-2 text-slate-400 hover:text-red-500 dark:hover:text-red-400 bg-slate-100 dark:bg-slate-800/80 rounded shadow-sm" title="Delete Candidate"><i class="fas fa-trash-alt"></i></button>
                             </div>
@@ -1425,7 +1434,7 @@ function renderArchivedJobs(container) {
     container.innerHTML = list.map(j => {
         const candidatesForJob = cachedCandidates.filter(c => c.jobId === j.id);
         const hiredCount = candidatesForJob.filter(c => c.stage === 'Hired').length;
-        
+
         return `
             <div class="glass-card hover:bg-slate-50 dark:hover:bg-slate-800/40 p-3 rounded-xl border border-slate-200 dark:border-white/5 transition-all">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1999,7 +2008,7 @@ window.editCompany = (id) => {
     for (const key in current) {
         if (form.elements[key]) form.elements[key].value = current[key];
     }
-    
+
     // Update Workspace UI
     document.getElementById('comp-name-display').innerText = current.name || 'New Partner';
     document.getElementById('comp-industry-display').innerText = current.industry || 'Sector Unassigned';
@@ -2099,6 +2108,14 @@ window.viewJobPipeline = (btn) => {
 
 window.addCandidateForJob = (jobId, department) => {
     window.openCandidateModal();
+
+    const form = document.getElementById('form-candidate');
+    if (form) {
+        form.reset();
+        document.getElementById('form-candidate-id').value = '';
+        document.getElementById('resume-upload-status').innerHTML = '';
+    }
+
     const deptSelect = document.getElementById('candidate-job-dept-select');
     const jobSelect = document.getElementById('candidate-job-select');
 
@@ -2112,6 +2129,12 @@ window.addCandidateForJob = (jobId, department) => {
 
     if (jobSelect) {
         jobSelect.value = jobId || '';
+    }
+
+    // default contact flag is false for new candidates
+    const contactCheckbox = document.getElementById('candidate-is-contact');
+    if (contactCheckbox) {
+        contactCheckbox.checked = false;
     }
 
     // Sync with custom UI
@@ -2348,7 +2371,10 @@ document.getElementById('form-candidate').onsubmit = async (e) => {
         data.experience = Number(data.experience);
         data.currentCTC = Number(data.currentCTC);
         if (data.offeredCTC) data.offeredCTC = Number(data.offeredCTC);
-        
+
+        // Contact flag for Contact Strategy
+        data.isContact = (data.isContact === 'true' || data.isContact === true) ? true : false;
+
         // New Rating fields
         if (data.technicalRating) data.technicalRating = Number(data.technicalRating);
         if (data.communicationRating) data.communicationRating = Number(data.communicationRating);
@@ -2450,17 +2476,21 @@ window.editCandidate = (id) => {
     const cand = cachedCandidates.find(c => c.id === id);
     if (!cand) return;
     const form = document.getElementById('form-candidate');
+    if (!form) return;
+
     form.reset();
 
     for (const key in cand) {
         if (form.elements[key]) {
-            form.elements[key].value = cand[key];
+            form.elements[key].value = cand[key] || '';
         }
     }
 
     // Update Initials & Profile UI
-    document.getElementById('cand-name-display').innerText = cand.name || 'New Candidate';
-    document.getElementById('cand-status-display').innerText = cand.stage || 'Applied';
+    const nameDisplay = document.getElementById('cand-name-display');
+    if (nameDisplay) nameDisplay.innerText = cand.name || 'New Candidate';
+    const statusDisplay = document.getElementById('cand-status-display');
+    if (statusDisplay) statusDisplay.innerText = cand.stage || 'Applied';
     if (window.updateInitialsDisplay) window.updateInitialsDisplay(cand.name);
 
     // Set Ratings UI
@@ -2468,6 +2498,14 @@ window.editCandidate = (id) => {
         window.setRating('technical', cand.technicalRating || 0);
         window.setRating('communication', cand.communicationRating || 0);
     }
+
+    // Extended Fields Support
+    const fAltPhone = form.elements['altPhone'];
+    const fLinkedin = form.elements['linkedin'];
+    const fScreener = form.elements['screenerNotes'];
+    if (fAltPhone) fAltPhone.value = cand.altPhone || '';
+    if (fLinkedin) fLinkedin.value = cand.linkedin || '';
+    if (fScreener) fScreener.value = cand.screenerNotes || '';
 
     // Populate structured address fields (split from composite or individual)
     const hrCity = form.elements['addressCity'];
@@ -2489,17 +2527,21 @@ window.editCandidate = (id) => {
     }
 
     pendingResumeFile = null;
-    document.getElementById('resumeFileInput').value = '';
-    document.getElementById('resumeFileLabel').innerText = 'Select File...';
-    document.getElementById('resume-upload-status').innerHTML = '';
+    const resumeInput = document.getElementById('resumeFileInput');
+    if (resumeInput) resumeInput.value = '';
+    const resumeLabel = document.getElementById('resumeFileLabel');
+    if (resumeLabel) resumeLabel.innerText = 'Select File...';
+    const resumeStatus = document.getElementById('resume-upload-status');
+    if (resumeStatus) resumeStatus.innerHTML = '';
     const existingActions = document.getElementById('existing-resume-actions');
+    const resumeUrlHidden = document.getElementById('resumeUrlHidden');
 
     if (cand.resumeUrl) {
-        existingActions.classList.remove('hidden');
-        document.getElementById('resumeUrlHidden').value = cand.resumeUrl;
+        if (existingActions) existingActions.classList.remove('hidden');
+        if (resumeUrlHidden) resumeUrlHidden.value = cand.resumeUrl;
     } else {
-        existingActions.classList.add('hidden');
-        document.getElementById('resumeUrlHidden').value = '';
+        if (existingActions) existingActions.classList.add('hidden');
+        if (resumeUrlHidden) resumeUrlHidden.value = '';
     }
 
     // Ensure job select shows the candidate's applied job and update custom select UI
@@ -2585,23 +2627,50 @@ document.getElementById('form-interview').onsubmit = async (e) => {
 
 window.handleInterviewCandidateSearch = (val) => {
     const list = document.getElementById('candidate-search-list');
-    const match = cachedCandidates.find(c => {
-        const searchStr = `${c.name} | ${c.phone || ''} | ${c.email}`.toLowerCase();
-        return searchStr === val.toLowerCase();
-    });
-    if (match) {
-        document.getElementById('interview-candidate-id-hidden').value = match.id;
-    } else {
-        document.getElementById('interview-candidate-id-hidden').value = '';
-    }
+    if (!list) return;
+
+    const query = (val || '').toLowerCase();
+    const rejectedStages = ['REJECTED', 'Rejected', 'Backed Out', 'Not Interested'];
+
+    const matches = cachedCandidates.filter(c => {
+        if (rejectedStages.includes(c.stage)) return false;
+        if (!query) return true;
+        return (c.name || '').toLowerCase().includes(query) ||
+            (c.phone && c.phone.includes(query)) ||
+            (c.email && c.email.toLowerCase().includes(query));
+    }).slice(0, 20);
+
+    list.innerHTML = matches.map(c =>
+        `<option value="${c.name} | ${c.phone || ''} | ${c.email || ''}" data-id="${c.id}">`
+    ).join('');
 };
 
 window.syncInterviewCandidateId = (val) => {
-    const option = Array.from(document.getElementById('candidate-search-list').options).find(opt => opt.value === val);
+    const list = document.getElementById('candidate-search-list');
+    if (!list) return;
+
+    let option = Array.from(list.options).find(opt => opt.value === val);
+    if (!option) {
+        // fallback: match by name prefix if the user typed the displaytext
+        option = Array.from(list.options).find(opt => (opt.value || '').toLowerCase().startsWith((val || '').toLowerCase()));
+    }
+
     if (option) {
-        document.getElementById('interview-candidate-id-hidden').value = option.getAttribute('data-id');
+        const candId = option.getAttribute('data-id');
+        const hiddenInput = document.getElementById('interview-candidate-id-hidden');
+        if (hiddenInput) hiddenInput.value = candId || '';
+
+        // Update Workspace Preview
+        const cand = cachedCandidates.find(c => c.id === candId);
+        if (cand) {
+            const nameDisplay = document.getElementById('interview-cand-name-display');
+            const initials = document.getElementById('interview-cand-initials');
+            if (nameDisplay) nameDisplay.innerText = cand.name;
+            if (initials) initials.innerText = cand.name.charAt(0).toUpperCase();
+        }
     } else {
-        document.getElementById('interview-candidate-id-hidden').value = '';
+        const hiddenInput = document.getElementById('interview-candidate-id-hidden');
+        if (hiddenInput) hiddenInput.value = '';
     }
 };
 
@@ -2619,12 +2688,12 @@ window.editInterview = (id) => {
     if (cand) {
         document.getElementById('interview-candidate-search').value = `${cand.name} | ${cand.phone || ''} | ${cand.email}`;
         document.getElementById('interview-candidate-id-hidden').value = cand.id;
-        
+
         // Update Workspace UI
         document.getElementById('interview-cand-name-display').innerText = cand.name;
         document.getElementById('interview-cand-initials').innerHTML = cand.name.charAt(0).toUpperCase();
     }
-    
+
     document.getElementById('interview-round-display').innerText = current.round || 'Technical Round';
 
     document.getElementById('form-interview-id').value = id;
@@ -4857,8 +4926,7 @@ window.loadPortalSettings = async () => {
                 showToast("Portal Synchronized Successfully");
                 loadPortalSettings();
             } catch (e) {
-                console.error("Portal Save Error:", e);
-                showError("Permission Denied: Ensure Firestore allow writing to 'settings/publicPortal'");
+                showError("Load failed");
             }
         };
     } catch (e) {
@@ -4868,18 +4936,33 @@ window.loadPortalSettings = async () => {
 };
 
 // --- POLYMORPHIC PROFILE VIEW LOGIC ---
-window.openProfileView = (type, title, icon, candidateId) => {
+window.openProfileView = (subtitle, title, icon, candidateId) => {
     const modal = document.getElementById('modal-profile-view');
-    const content = document.getElementById('profile-view-content');
-    if (!modal || !content) return;
+    if (!modal) return;
 
-    let navHtml = '';
-    if (candidateId && currentInboxQueue.length > 1) {
-        const idx = currentInboxQueue.findIndex(c => c.id === candidateId);
-        const prev = idx > 0 ? currentInboxQueue[idx - 1].id : null;
-        const next = idx < currentInboxQueue.length - 1 ? currentInboxQueue[idx + 1].id : null;
+    // Set Header
+    const titleEl = document.getElementById('profile-title');
+    const subtitleEl = document.getElementById('profile-subtitle');
+    if (titleEl) titleEl.innerText = title;
+    if (subtitleEl) subtitleEl.innerText = subtitle;
 
-        navHtml = `
+    // Set Icon
+    const iconBox = document.getElementById('profile-icon-box');
+    if (iconBox) {
+        iconBox.innerHTML = `<i class="fas ${icon} text-xl"></i>`;
+    }
+
+    // Navigation
+    const navContainer = document.getElementById('profile-nav-container');
+    if (navContainer) {
+        let navHtml = '';
+        if (candidateId && currentInboxQueue && currentInboxQueue.length > 1) {
+            const idx = currentInboxQueue.findIndex(c => c.id === candidateId);
+            if (idx !== -1) {
+                const prev = idx > 0 ? currentInboxQueue[idx - 1].id : null;
+                const next = idx < currentInboxQueue.length - 1 ? currentInboxQueue[idx + 1].id : null;
+
+                navHtml = `
                     <div class="flex items-center gap-2">
                         <button onclick="showCandidateProfile('${prev}')" ${!prev ? 'disabled' : ''} class="w-10 h-10 flex items-center justify-center bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 transition shadow-sm disabled:opacity-30">
                             <i class="fas fa-chevron-left text-xs"></i>
@@ -4890,31 +4973,11 @@ window.openProfileView = (type, title, icon, candidateId) => {
                         </button>
                     </div>
                 `;
+            }
+        }
+        navContainer.innerHTML = navHtml;
     }
 
-    // Set Header with Icon and Title
-    content.innerHTML = `
-                <div class="profile-header-gradient">
-                    <div class="profile-avatar-large">
-                        <i class="fas ${icon}"></i>
-                    </div>
-                </div>
-                <div class="profile-content-area animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div class="flex justify-between items-start mb-8">
-                        <div>
-                            <h2 class="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">${title}</h2>
-                            <p class="text-slate-500 dark:text-slate-400 font-medium">${type}</p>
-                        </div>
-                        <div class="flex items-center gap-6">
-                            ${navHtml}
-                            <div id="profile-status-badge"></div>
-                        </div>
-                    </div>
-                    <div id="profile-detailed-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Content Injected by Type-Specific Renderers -->
-                    </div>
-                </div>
-            `;
     modal.classList.remove('hidden');
 };
 
@@ -4954,107 +5017,192 @@ window.showCandidateProfile = (id) => {
     if (!c) return;
 
     window.openProfileView('Candidate Profile', c.name, 'fa-user-tie', c.id);
-    const grid = document.getElementById('profile-detailed-grid');
-    const badgeContainer = document.getElementById('profile-status-badge');
 
+    // Identity Update
+    document.getElementById('profile-name').innerText = c.name;
+    document.getElementById('profile-type').innerText = c.currentCompany || 'Independent Professional';
+    const candidateContactInput = document.getElementById('candidate-is-contact');
+    if (candidateContactInput) {
+        candidateContactInput.value = c.isContact ? 'true' : 'false';
+    }
+    const avatarBox = document.getElementById('profile-avatar-box');
+    if (avatarBox) {
+        avatarBox.innerHTML = c.name.split(' ').map(n => n[0]).join('').toUpperCase();
+        avatarBox.classList.add('bg-blue-600', 'text-white', 'font-black');
+    }
+
+    // Status Badge
+    const badgeContainer = document.getElementById('profile-status-badge');
     if (badgeContainer) {
         const stageClass = c.stage === 'REJECTED' ? 'badge-red' : (c.stage === 'HIRED' ? 'badge-green' : 'badge-blue');
         badgeContainer.innerHTML = `<span class="badge ${stageClass} scale-110 px-4 py-1.5 shadow-sm">${c.stage || 'Sourced'}</span>`;
     }
 
-    grid.innerHTML = `
+    // Header Metrics
+    const headerMetrics = document.getElementById('profile-header-metrics');
+    if (headerMetrics) {
+        const score = c.score || (c.technicalRating && c.communicationRating ? Math.round((Number(c.technicalRating || 0) + Number(c.communicationRating || 0)) / 2) : 'N/A');
+        headerMetrics.innerHTML = `
+            <span class="rounded-lg bg-white/90 dark:bg-slate-800/90 px-3 py-1 text-[10px] font-bold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700">Experience: ${c.experience || 0} yrs</span>
+            <span class="rounded-lg bg-white/90 dark:bg-slate-800/90 px-3 py-1 text-[10px] font-bold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700">Notice: ${c.noticePeriod || 0} days</span>
+            <span class="rounded-lg bg-white/90 dark:bg-slate-800/90 px-3 py-1 text-[10px] font-bold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700">Expected: ₹${(c.expectedCTC || 0).toLocaleString()}/mo</span>
+            <span class="rounded-lg bg-white/90 dark:bg-slate-800/90 px-3 py-1 text-[10px] font-bold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700">Score: ${score}</span>
+        `;
+    }
+
+    // Sidebar Actions
+    const sidebarActions = document.getElementById('profile-sidebar-actions');
+    if (sidebarActions) {
+        sidebarActions.innerHTML = `
+            <button onclick="toggleContactStatus('${c.id}')" class="w-full py-3 ${c.isContact ? 'bg-slate-200 text-slate-800' : 'bg-blue-100 text-blue-700'} rounded-xl font-bold flex items-center justify-center gap-2 transition-all">
+                <i class="fas ${c.isContact ? 'fa-user-minus' : 'fa-user-plus'}"></i> ${c.isContact ? 'Remove Contact' : 'Save to Contacts'}
+            </button>
+            <button onclick="initiateRemoteCall('${c.phone}', '${c.name.replace(/'/g, "\\'")}')" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-500/20">
+                <i class="fas fa-phone"></i> Call Now
+            </button>
+            <button onclick="window.open('https://wa.me/91${c.phone}', '_blank')" class="w-full py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold flex items-center justify-center gap-2 transition-all">
+                <i class="fab fa-whatsapp text-emerald-500"></i> WhatsApp
+            </button>
+            <button onclick="window.open('mailto:${c.email}', '_blank')" class="w-full py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold flex items-center justify-center gap-2 transition-all">
+                <i class="fas fa-envelope text-blue-500"></i> Send Email
+            </button>
+        `;
+    }
+
+    // Main Content
+    const content = document.getElementById('profile-view-content');
+    if (content) {
+        content.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Resume Card -->
                 ${c.resumeUrl ? `
-                <div class="profile-data-card md:col-span-2 border-dashed border-blue-200 bg-blue-50/20">
+                <div class="col-span-full form-group-card border-dashed border-blue-200 bg-blue-50/20">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
+                            <div class="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white">
                                 <i class="fas fa-file-pdf text-xl"></i>
                             </div>
                             <div>
                                 <p class="text-sm font-bold text-slate-800 dark:text-slate-200">Curriculum Vitae</p>
-                                <p class="text-xs text-slate-500">Applicant Resume is available for preview</p>
+                                <p class="text-xs text-slate-500">Applicant Resume is encrypted and stored</p>
                             </div>
                         </div>
                         <button onclick="previewResume('${c.resumeUrl}')" class="px-6 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-500/30 hover:scale-105 transition-transform">Preview Resume</button>
                     </div>
                 </div>` : ''}
-                <div class="profile-data-card">
-                    <p class="profile-label">Contact Information</p>
-                    <div class="space-y-3 mt-2">
-                        <div class="flex items-center gap-3 text-sm">
-                            <i class="fas fa-envelope text-blue-500 w-4"></i>
-                            <span class="text-slate-700 dark:text-slate-300">${c.email}</span>
+
+                <!-- Stats Cards -->
+                <div class="form-group-card">
+                    <h5 class="field-label">Professional Experience</h5>
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-[10px] text-slate-400 uppercase font-black">Experience Level</p>
+                            <p class="text-lg font-black text-slate-800 dark:text-white">${c.experience || 0} Years</p>
                         </div>
-                        <div class="flex items-center justify-between text-sm">
-                            <div class="flex items-center gap-3">
-                                <i class="fas fa-phone text-emerald-500 w-4"></i>
-                                <span class="text-slate-700 dark:text-slate-300">${c.phone}</span>
-                            </div>
-                            <button onclick="initiateRemoteCall('${c.phone}', '${c.name.replace(/'/g, "\\'")}')" class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-bold hover:bg-emerald-200 transition-colors flex items-center gap-1">
-                                <i class="fas fa-mobile-screen-button"></i> Call
-                            </button>
-                        </div>
-                        <div class="flex items-center gap-3 text-sm">
-                            <i class="fas fa-map-marker-alt text-red-400 w-4"></i>
-                            <span class="text-slate-700 dark:text-slate-300">${c.address || 'No address provided'}</span>
+                        <div>
+                            <p class="text-[10px] text-slate-400 uppercase font-black">Highest Qualification</p>
+                            <p class="text-lg font-black text-slate-800 dark:text-white">${c.qualification || 'N/A'}</p>
                         </div>
                     </div>
                 </div>
-                <div class="profile-data-card">
-                    <p class="profile-label">Professional Summary</p>
-                    <div class="grid grid-cols-2 gap-4 mt-2">
-                        <div>
-                            <p class="text-[10px] text-slate-400 uppercase">Experience</p>
-                            <p class="profile-value">${c.experience || 0} Years</p>
-                        </div>
-                        <div>
-                            <p class="text-[10px] text-slate-400 uppercase">Qualification</p>
-                            <p class="profile-value">${c.qualification || 'N/A'}</p>
-                        </div>
-                        <div>
-                            <p class="text-[10px] text-slate-400 uppercase">Current Co.</p>
-                            <p class="profile-value">${c.currentCompany || 'N/A'}</p>
-                        </div>
-                        <div>
-                            <p class="text-[10px] text-slate-400 uppercase">Source</p>
-                            <p class="profile-value">${c.source || 'Direct'}</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="profile-data-card md:col-span-2">
-                    <p class="profile-label">Compensation Details</p>
-                    <div class="flex flex-wrap gap-8 mt-2">
-                        <div>
-                            <p class="text-[10px] text-slate-400 uppercase">Current CTC</p>
-                            <p class="profile-value text-slate-600">₹${(c.currentCTC || 0).toLocaleString()}/mo</p>
-                        </div>
-                        <div>
-                            <p class="text-[10px] text-slate-400 uppercase">Expected CTC</p>
-                            <p class="profile-value text-blue-600">₹${(c.expectedCTC || 0).toLocaleString()}/mo</p>
-                        </div>
-                         <div>
-                            <p class="text-[10px] text-slate-400 uppercase">Notice Period</p>
-                            <p class="profile-value">${c.noticePeriod || 0} Days</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="profile-data-card md:col-span-2 border-dashed border-indigo-200 bg-indigo-50/20">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600">
-                                <i class="fas fa-share-nodes text-xl"></i>
+
+                <div class="form-group-card">
+                    <h5 class="field-label">Compensation & Notice</h5>
+                    <div class="space-y-4">
+                        <div class="flex justify-between">
+                            <div>
+                                <p class="text-[10px] text-slate-400 uppercase font-black">Expected CTC</p>
+                                <p class="text-lg font-black text-blue-600">₹${(c.expectedCTC || 0).toLocaleString()}/mo</p>
                             </div>
                             <div>
-                                <p class="text-sm font-bold text-slate-800 dark:text-slate-200">Share Profile</p>
-                                <p class="text-xs text-slate-500">Generate a read-only link for hiring managers</p>
+                                <p class="text-[10px] text-slate-400 uppercase font-black">Current</p>
+                                <p class="text-lg font-black text-slate-400">₹${(c.currentCTC || 0).toLocaleString()}/mo</p>
                             </div>
                         </div>
-                        <button onclick="generateShareLink('${c.id}')" class="px-6 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-500/30 hover:scale-105 transition-transform flex items-center gap-2">
-                            <i class="fas fa-link"></i> Copy Link
-                        </button>
+                        <div>
+                            <p class="text-[10px] text-slate-400 uppercase font-black">Availability</p>
+                            <p class="text-lg font-black text-amber-600">${c.noticePeriod || 0} Days Notice</p>
+                        </div>
                     </div>
                 </div>
-            `;
+
+                 <!-- Ratings Card -->
+                <div class="col-span-full form-group-card">
+                    <h5 class="field-label">Internal Evaluations</h5>
+                    <div class="grid grid-cols-2 gap-8">
+                        <div>
+                             <p class="text-[10px] text-slate-400 uppercase font-black mb-1">Technical Ability</p>
+                             <div class="flex gap-1 text-amber-400">
+                                ${Array(5).fill(0).map((_, i) => `<i class="fas fa-star ${i < (c.technicalRating || 0) ? 'text-amber-400' : 'text-slate-200 dark:text-slate-700'}"></i>`).join('')}
+                             </div>
+                        </div>
+                        <div>
+                             <p class="text-[10px] text-slate-400 uppercase font-black mb-1">Communication</p>
+                             <div class="flex gap-1 text-blue-400">
+                                ${Array(5).fill(0).map((_, i) => `<i class="fas fa-star ${i < (c.communicationRating || 0) ? 'text-blue-400' : 'text-slate-200 dark:text-slate-700'}"></i>`).join('')}
+                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bio/Notes -->
+                <div class="col-span-full form-group-card">
+                    <h5 class="field-label">Screener Notes</h5>
+                    <p class="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap leading-relaxed">${c.screenerNotes || 'No internal notes available for this candidate.'}</p>
+                </div>
+            </div>
+        `;
+    }
+
+    // Right Sidebar: Actions
+    const actionsArea = document.getElementById('profile-view-actions');
+    if (actionsArea) {
+        actionsArea.innerHTML = `
+            <div class="space-y-4">
+                <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Workflow Actions</p>
+                <button onclick="updateCandidateStage('${c.id}', 'Interview')" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xs">Mark Interview</button>
+                <button onclick="updateCandidateStage('${c.id}', 'Selected')" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs">Mark Selected</button>
+                <button onclick="updateCandidateStage('${c.id}', 'Rejected')" class="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-black text-xs">Mark Rejected</button>
+
+                <div class="pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Screener Notes</p>
+                    <textarea id="profile-quick-note" rows="4" class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs" placeholder="Write a quick note..."></textarea>
+                    <button onclick="saveCandidateNote('${c.id}')" class="mt-2 w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold text-xs">Save Note</button>
+                </div>
+
+                <div class="pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">External Tools</p>
+                    <button onclick="openInterviewModal()" class="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-xs">Schedule Interview</button>
+                    <button onclick="openOfferModal('${c.id}')" class="mt-2 w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs">Send Offer</button>
+                    <button onclick="generateShareLink('${c.id}')" class="mt-2 w-full py-3 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs">Share Profile</button>
+                </div>
+            </div>
+        `;
+    }
+};
+
+window.saveCandidateNote = async (candidateId) => {
+    const noteInput = document.getElementById('profile-quick-note');
+    if (!noteInput) return;
+    const note = noteInput.value.trim();
+    if (!note) return showToast('Please type a note before saving.', 'error');
+
+    const candidate = cachedCandidates.find(c => c.id === candidateId);
+    if (!candidate) return showToast('Candidate not found', 'error');
+
+    try {
+        const existing = candidate.screenerNotes || '';
+        const updatedNotes = existing ? `${existing}\n\n${new Date().toLocaleString()}: ${note}` : `${new Date().toLocaleString()}: ${note}`;
+
+        await updateDoc(doc(db, 'candidates', candidateId), { screenerNotes: updatedNotes });
+        candidate.screenerNotes = updatedNotes;
+        noteInput.value = '';
+        showToast('Note saved successfully');
+        showCandidateProfile(candidateId);
+    } catch (e) {
+        console.error('Unable to save candidate note', e);
+        showToast('Failed to save note', 'error');
+    }
 };
 
 window.initiateRemoteCall = async (phoneNumber, candidateName) => {
@@ -6037,13 +6185,73 @@ window.renderContactsSection = () => {
     const tableBody = document.getElementById('contacts-table-body');
     if (!tableBody) return;
 
-    if (!cachedCandidates || cachedCandidates.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="4" class="py-20 text-center text-slate-400">No candidates found in the system.</td></tr>`;
+    // Filter only those marked as contacts
+    const contacts = cachedCandidates.filter(c => c.isContact === true);
+
+    if (contacts.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="4" class="py-24 text-center">
+                    <div class="flex flex-col items-center gap-4 opacity-30">
+                        <i class="fas fa-address-book text-5xl"></i>
+                        <p class="font-bold uppercase tracking-widest text-xs">No saved contacts yet</p>
+                        <p class="text-[10px] max-w-xs mx-auto">Mark candidates as "Save to Contacts" from their profile or the dialer to see them here.</p>
+                    </div>
+                </td>
+            </tr>`;
         return;
     }
 
-    renderContactsTable(cachedCandidates);
+    renderContactsTable(contacts);
     renderMiniCallLogs();
+};
+
+window.toggleContactStatus = async (id) => {
+    const c = cachedCandidates.find(cand => cand.id === id);
+    if (!c) return;
+
+    try {
+        const newStatus = !c.isContact;
+        await updateDoc(doc(db, "candidates", id), { isContact: newStatus });
+        if (c.isContact !== newStatus) {
+            c.isContact = newStatus;
+        }
+        renderContactsSection();
+        showToast(newStatus ? "Added to Contacts" : "Removed from Contacts");
+    } catch (e) {
+        console.error("Error toggling contact status:", e);
+        showToast("Failed to update contact", "error");
+    }
+};
+
+window.saveQuickContact = async () => {
+    const name = (document.getElementById('quick-contact-name') || {}).value || '';
+    const phone = (document.getElementById('quick-contact-phone') || {}).value || '';
+    const email = (document.getElementById('quick-contact-email') || {}).value || '';
+
+    if (!name || !phone) {
+        return showToast('Name and phone are required to save contact', 'error');
+    }
+
+    try {
+        const data = {
+            name,
+            phone,
+            email,
+            isContact: true,
+            createdAt: serverTimestamp(),
+            stage: 'Contact',
+            inTalentPool: true
+        };
+        await addDoc(collection(db, 'candidates'), data);
+        showToast('Quick contact saved');
+        document.getElementById('quick-contact-form').reset();
+        renderContactsSection();
+        renderWaCandidatesChecklist();
+    } catch (e) {
+        console.error('Failed saving quick contact', e);
+        showToast('Failed saving contact', 'error');
+    }
 };
 
 function renderContactsTable(contacts) {
@@ -6053,7 +6261,7 @@ function renderContactsTable(contacts) {
     tableBody.innerHTML = contacts.map((c, index) => {
         const initials = getInitials(c.name);
         const color = colors[index % colors.length];
-        
+
         return `
             <tr class="contact-row group">
                 <td class="px-4 py-4">
@@ -6086,8 +6294,8 @@ function renderContactsTable(contacts) {
 }
 
 window.filterContacts = (term) => {
-    const filtered = cachedCandidates.filter(c => 
-        c.name.toLowerCase().includes(term.toLowerCase()) || 
+    const filtered = cachedCandidates.filter(c =>
+        c.name.toLowerCase().includes(term.toLowerCase()) ||
         (c.phone && c.phone.includes(term)) ||
         (c.position && c.position.toLowerCase().includes(term.toLowerCase()))
     );
@@ -6125,7 +6333,7 @@ window.initiateDialerCall = async () => {
     }
 
     const cleanPhone = phone.replace(/\D/g, '');
-    
+
     // Add to local logs
     const contact = cachedCandidates.find(c => c.phone && c.phone.replace(/\D/g, '') === cleanPhone);
     const logEntry = {
@@ -6134,20 +6342,20 @@ window.initiateDialerCall = async () => {
         timestamp: new Date().toISOString(),
         id: Date.now()
     };
-    
+
     dialerCallLogs.unshift(logEntry);
     if (dialerCallLogs.length > 20) dialerCallLogs.pop();
     localStorage.setItem('dialerCallLogs', JSON.stringify(dialerCallLogs));
-    
+
     renderMiniCallLogs();
-    
+
     // Firebase Integration
     await initiateRemoteCall(cleanPhone);
 };
 
 async function initiateRemoteCall(phoneNumber) {
     if (!auth.currentUser) return showToast("Please sign in to use the dialer");
-    
+
     try {
         // Find candidate name from the UI context if possible
         let candidateName = "Manual Dial";
@@ -6175,12 +6383,12 @@ async function initiateRemoteCall(phoneNumber) {
 function renderMiniCallLogs() {
     const container = document.getElementById('mini-call-logs');
     if (!container) return;
-    
+
     if (dialerCallLogs.length === 0) {
         container.innerHTML = `<div class="text-center py-6 opacity-40"><i class="fas fa-history text-xl mb-2"></i><p class="text-[10px]">No recent calls</p></div>`;
         return;
     }
-    
+
     container.innerHTML = dialerCallLogs.map(log => `
         <div class="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all cursor-default">
             <div class="flex items-center gap-3">
@@ -6189,7 +6397,7 @@ function renderMiniCallLogs() {
                 </div>
                 <div>
                     <div class="text-[11px] font-bold text-slate-700 dark:text-slate-300 truncate max-w-[100px]">${log.name}</div>
-                    <div class="text-[9px] text-slate-500">${new Date(log.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                    <div class="text-[9px] text-slate-500">${new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                 </div>
             </div>
             <button onclick="quickDial('${log.phone}')" class="text-blue-500 hover:text-blue-600 p-1">
@@ -6232,13 +6440,19 @@ window.updateInitialsDisplay = (name) => {
 };
 
 window.setRating = (category, value) => {
-    const input = document.getElementById(`cand-${category}-rating`);
+    // Target the hidden input by ID: val-rating-technical or val-rating-communication
+    const input = document.getElementById(`val-rating-${category}`);
     if (input) input.value = value;
-    
+
     // Update UI stars
-    const stars = document.querySelectorAll(`[onclick^="setRating('${category}'"]`);
+    // The attribute is [onclick="setRating('technical', 1)"] etc.
+    const stars = document.querySelectorAll(`[onclick*="setRating('${category}'"]`);
     stars.forEach((star, index) => {
-        if (index < value) {
+        // Since we are using 1-5 index for clicking, but forEach is 0-indexed
+        // Actually the button onclick has the value.
+        // Let's just find the value from the onclick attribute.
+        const starVal = parseInt(star.getAttribute('onclick').match(/\d+/)[0]);
+        if (starVal <= value) {
             star.classList.remove('text-slate-300', 'dark:text-slate-700');
             star.classList.add('text-amber-400');
         } else {
@@ -6246,6 +6460,106 @@ window.setRating = (category, value) => {
             star.classList.remove('text-amber-400');
         }
     });
+};
+
+/* --- IMMERSIVE WORKSPACE HANDLERS (New) --- */
+
+window.openOfferModal = (id) => {
+    const cand = cachedCandidates.find(c => c.id === id);
+    if (!cand) return;
+    document.getElementById('offer-candidate-id').value = id;
+    document.getElementById('offer-cand-name').innerText = cand.name;
+    document.getElementById('offer-cand-initials').innerText = getInitials(cand.name);
+    document.getElementById('offer-job-title').innerText = cand.jobTitle || 'Active Candidate';
+    openModal('modal-offer');
+};
+
+document.getElementById('form-offer').onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    const orig = btn.innerText; btn.innerText = "Processing..."; btn.disabled = true;
+    try {
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        const id = data.candidateId;
+        delete data.candidateId;
+
+        // Update Candidate with Offer details
+        await updateDoc(doc(db, "candidates", id), {
+            ...data,
+            stage: 'Offered',
+            offerPreparedAt: serverTimestamp()
+        });
+
+        showToast("Offer Details Processed!");
+        closeModal('modal-offer');
+        e.target.reset();
+    } catch (e) { alert("Error: " + e.message); }
+    finally { btn.innerText = orig; btn.disabled = false; }
+};
+
+window.openRejectModal = (id) => {
+    const cand = cachedCandidates.find(c => c.id === id);
+    if (!cand) return;
+    document.getElementById('reject-candidate-id').value = id;
+    document.getElementById('reject-cand-name').innerText = cand.name;
+    document.getElementById('reject-cand-initials').innerText = getInitials(cand.name);
+    openModal('modal-reject');
+};
+
+document.getElementById('form-reject').onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    const orig = btn.innerText; btn.innerText = "Rejecting..."; btn.disabled = true;
+    try {
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        const id = data.candidateId;
+        delete data.candidateId;
+
+        await updateDoc(doc(db, "candidates", id), {
+            ...data,
+            stage: 'Rejected',
+            rejectedAt: serverTimestamp()
+        });
+
+        showToast("Candidate Rejected.");
+        closeModal('modal-reject');
+        e.target.reset();
+    } catch (e) { alert("Error: " + e.message); }
+    finally { btn.innerText = orig; btn.disabled = false; }
+};
+
+window.openAssessmentModal = (id) => {
+    const cand = cachedCandidates.find(c => c.id === id);
+    if (!cand) return;
+    document.getElementById('assessment-candidate-id').value = id;
+    document.getElementById('assessment-cand-name').innerText = cand.name;
+    document.getElementById('assessment-cand-initials').innerText = getInitials(cand.name);
+    openModal('modal-assessment');
+};
+
+document.getElementById('form-assessment').onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    const orig = btn.innerText; btn.innerText = "Submitting..."; btn.disabled = true;
+    try {
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        const id = data.candidateId;
+        delete data.candidateId;
+
+        await updateDoc(doc(db, "candidates", id), {
+            ...data,
+            assessmentCompleted: true,
+            assessmentAt: serverTimestamp()
+        });
+
+        showToast("Assessment Recorded!");
+        closeModal('modal-assessment');
+        e.target.reset();
+    } catch (e) { alert("Error: " + e.message); }
+    finally { btn.innerText = orig; btn.disabled = false; }
 };
 
 window.openJobModal = () => {
@@ -6271,7 +6585,7 @@ window.openCompanyModal = () => {
     openModal('modal-company');
 };
 
-window.openInterviewModal = () => {
+window.openInterviewModal = (candidateId = '') => {
     const form = document.getElementById('form-interview');
     if (form) form.reset();
     document.getElementById('form-interview-id').value = '';
@@ -6281,5 +6595,32 @@ window.openInterviewModal = () => {
     document.getElementById('interview-cand-initials').innerHTML = '<i class="fas fa-user"></i>';
     document.getElementById('interview-candidate-search').value = '';
     document.getElementById('interview-candidate-id-hidden').value = '';
+
+    populateInterviewCandidateSearchList();
+
+    if (candidateId) {
+        const cand = cachedCandidates.find(c => c.id === candidateId);
+        if (cand) {
+            const searchInput = document.getElementById('interview-candidate-search');
+            const hiddenInput = document.getElementById('interview-candidate-id-hidden');
+            if (searchInput) searchInput.value = `${cand.name} | ${cand.phone || ''} | ${cand.email || ''}`;
+            if (hiddenInput) hiddenInput.value = cand.id;
+            document.getElementById('interview-cand-name-display').innerText = cand.name;
+            document.getElementById('interview-cand-initials').innerText = cand.name.charAt(0).toUpperCase();
+        }
+    }
+
     openModal('modal-interview');
+};
+
+window.populateInterviewCandidateSearchList = () => {
+    const list = document.getElementById('candidate-search-list');
+    if (!list) return;
+
+    const activeCandidates = cachedCandidates.filter(c => {
+        const rejected = ['REJECTED', 'Rejected', 'Backed Out', 'Not Interested'];
+        return !rejected.includes(c.stage);
+    }).slice(0, 100);
+
+    list.innerHTML = activeCandidates.map(c => `<option value="${c.name} | ${c.phone || ''} | ${c.email || ''}" data-id="${c.id}"></option>`).join('');
 };

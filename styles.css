@@ -1880,15 +1880,87 @@ overflow: hidden;
 .rating-star {
     color: #cbd5e1;
     cursor: pointer;
-    transition: color 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     font-size: 1.25rem;
 }
 
 .rating-star:hover {
     color: #fbbf24;
+    transform: scale(1.2);
 }
 
 .rating-star.active {
     color: #f59e0b;
+}
+
+.wa-variable-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.75rem;
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.15);
+    border-radius: 0.75rem;
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #3b82f6;
+    cursor: pointer;
+    transition: all 0.25s;
+}
+
+.wa-variable-tag:hover {
+    background: #3b82f6;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.wa-message-bubble {
+    background: white;
+    padding: 0.75rem 1rem;
+    border-radius: 0 1rem 1rem 1rem;
+    font-size: 0.8rem;
+    max-width: 85%;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    position: relative;
+    border: 1px solid rgba(0,0,0,0.03);
+    line-height: 1.5;
+    color: #111b21;
+}
+
+.dark .wa-message-bubble {
+    background: #202c33;
+    color: #e9edef;
+    border-color: rgba(255,255,255,0.05);
+}
+
+.wa-message-bubble::before {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 0;
+    border-width: 0 10px 10px 0;
+    border-color: transparent white transparent transparent;
+}
+
+.dark .wa-message-bubble::before {
+    border-color: transparent #202c33 transparent transparent;
+}
+
+/* Animations for Workspaces */
+.workspace-animate-in {
+    animation: workspaceFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes workspaceFadeIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -48%) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
 }
 
