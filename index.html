@@ -408,12 +408,6 @@
                         <i class="fas fa-user-tie w-5 flex-shrink-0 text-center"></i> <span
                             class="sidebar-label whitespace-nowrap">Candidates</span>
                     </a>
-                    <a href="#" onclick="showSection('contacts')"
-                        class="sidebar-btn flex items-center gap-3 p-3 rounded-lg transition-all duration-300 ease-out"
-                        id="btn-nav-contacts" style="color: var(--text-secondary)">
-                        <i class="fas fa-phone-volume w-5 flex-shrink-0 text-center text-blue-500"></i> <span
-                            class="sidebar-label whitespace-nowrap">Contacts & Dialer</span>
-                    </a>
                     <a href="#" onclick="showSection('archive')"
                         class="sidebar-btn flex items-center gap-3 p-3 rounded-lg transition-all duration-300 ease-out text-amber-500/80 hover:text-amber-500"
                         id="btn-nav-archive" style="color: var(--text-secondary)">
@@ -683,8 +677,8 @@
                                 class="glass-card p-6 rounded-2xl border-l-4 border-l-cyan-500 hover-lift animate-fade-up stagger-8">
                                 <div class="flex justify-between items-start">
                                     <div>
-                                        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Hires
-                                            This Month</p>
+                                        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Closed
+                                            Jobs Count</p>
                                         <h3 class="text-3xl font-bold mt-2 text-emerald-500"
                                             id="stat-monthly-hires-big">0</h3>
                                     </div>
@@ -1241,148 +1235,6 @@
                     <div id="section-portalsettings" class="hidden space-y-6">
                         <div id="portal-settings-container">
                             <!-- JS injects form here -->
-                        </div>
-                    </div>
-
-                    <!-- CONTACTS & DIALER VIEW -->
-                    <div id="section-contacts" class="hidden space-y-8 animate-fade-in">
-                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                            <!-- Left: Smart Dialer -->
-                            <div class="lg:col-span-1 space-y-6">
-                                <div
-                                    class="glass-card p-8 rounded-[2.5rem] border-transparent hover:border-blue-500/30 transition-all duration-500 group relative overflow-hidden bg-gradient-to-br from-white/10 to-white/5 dark:from-slate-800/50 dark:to-slate-900/50 backdrop-blur-2xl">
-                                    <div
-                                        class="absolute -top-24 -right-24 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-500/20 transition-all">
-                                    </div>
-
-                                    <h4
-                                        class="font-black text-slate-800 dark:text-white mb-8 flex items-center gap-3 tracking-tight">
-                                        <span
-                                            class="p-2 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-500/20"><i
-                                                class="fas fa-th"></i></span>
-                                        Smart Dialer
-                                    </h4>
-
-                                    <!-- Dialer Display -->
-                                    <div
-                                        class="mb-8 p-6 bg-slate-900/90 dark:bg-black/40 rounded-3xl border border-white/10 shadow-inner">
-                                        <input type="text" id="dialer-input" readonly placeholder="Enter number..."
-                                            class="w-full bg-transparent border-none text-center text-3xl font-black text-blue-400 placeholder:text-slate-700 tracking-[0.2em] focus:ring-0">
-                                    </div>
-
-                                    <!-- Keypad Grid -->
-                                    <div class="grid grid-cols-3 gap-4 mb-8">
-                                        <button onclick="dialPadPush('1')" class="dialpad-btn">1<span
-                                                class="dialpad-sub"></span></button>
-                                        <button onclick="dialPadPush('2')" class="dialpad-btn">2<span
-                                                class="dialpad-sub">ABC</span></button>
-                                        <button onclick="dialPadPush('3')" class="dialpad-btn">3<span
-                                                class="dialpad-sub">DEF</span></button>
-                                        <button onclick="dialPadPush('4')" class="dialpad-btn">4<span
-                                                class="dialpad-sub">GHI</span></button>
-                                        <button onclick="dialPadPush('5')" class="dialpad-btn">5<span
-                                                class="dialpad-sub">JKL</span></button>
-                                        <button onclick="dialPadPush('6')" class="dialpad-btn">6<span
-                                                class="dialpad-sub">MNO</span></button>
-                                        <button onclick="dialPadPush('7')" class="dialpad-btn">7<span
-                                                class="dialpad-sub">PQRS</span></button>
-                                        <button onclick="dialPadPush('8')" class="dialpad-btn">8<span
-                                                class="dialpad-sub">TUV</span></button>
-                                        <button onclick="dialPadPush('9')" class="dialpad-btn">9<span
-                                                class="dialpad-sub">WXYZ</span></button>
-                                        <button onclick="dialPadPush('*')" class="dialpad-btn text-2xl mt-1">*</button>
-                                        <button onclick="dialPadPush('0')" class="dialpad-btn">0<span
-                                                class="dialpad-sub">+</span></button>
-                                        <button onclick="dialPadPush('#')" class="dialpad-btn text-xl mt-1">#</button>
-                                    </div>
-
-                                    <!-- Call Action -->
-                                    <div class="flex gap-4">
-                                        <button onclick="dialPadClear()"
-                                            class="w-20 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-red-500 transition-all border border-slate-200 dark:border-slate-700 active:scale-90">
-                                            <i class="fas fa-backspace"></i>
-                                        </button>
-                                        <button onclick="initiateDialerCall()"
-                                            class="flex-1 h-16 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-xl shadow-xl shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3">
-                                            <i class="fas fa-phone-flip animate-pulse"></i> CALL
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- Recent Call Logs Mini Widget -->
-                                <div class="glass-card p-6 rounded-[2rem] border-transparent">
-                                    <h5
-                                        class="font-bold text-slate-700 dark:text-slate-300 mb-4 flex items-center justify-between text-xs uppercase tracking-widest">
-                                        Recent Logs
-                                        <span class="text-[10px] text-blue-500 cursor-pointer hover:underline"
-                                            onclick="clearCallLogs()">Clear All</span>
-                                    </h5>
-                                    <div id="mini-call-logs"
-                                        class="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                                        <div class="text-center py-6 opacity-40">
-                                            <i class="fas fa-history text-xl mb-2"></i>
-                                            <p class="text-[10px]">No recent calls</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Right: Contact List -->
-                            <div class="lg:col-span-2 space-y-6">
-                                <div
-                                    class="glass-card p-8 rounded-[2.5rem] border-transparent flex flex-col h-[calc(100vh-200px)]">
-                                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-                                        <div>
-                                            <h4
-                                                class="font-black text-2xl text-slate-800 dark:text-white tracking-tight">
-                                                Unified Contacts</h4>
-                                            <p class="text-sm text-slate-500">Access your entire recruiter database</p>
-                                        </div>
-                                        <div class="relative w-full md:w-72 group">
-                                            <i
-                                                class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"></i>
-                                            <input type="text" id="contact-search" onkeyup="filterContacts(this.value)"
-                                                placeholder="Search contacts..."
-                                                class="w-full pl-11 pr-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-sm font-medium">
-                                        </div>
-                                    </div>
-                                    <form id="quick-contact-form" class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
-                                        <input id="quick-contact-name" type="text" placeholder="Name" required
-                                            class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
-                                        <input id="quick-contact-phone" type="tel" placeholder="Phone" required
-                                            class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
-                                        <input id="quick-contact-email" type="email" placeholder="Email"
-                                            class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
-                                        <button type="button" onclick="saveQuickContact()"
-                                            class="text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-xl font-semibold transition">Save Contact</button>
-                                    </form>
-
-                                    <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                                        <table class="w-full">
-                                            <thead
-                                                class="sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md z-10">
-                                                <tr class="text-left border-b border-slate-100 dark:border-slate-800">
-                                                    <th
-                                                        class="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                                        Contact</th>
-                                                    <th
-                                                        class="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                                        Position</th>
-                                                    <th
-                                                        class="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                                        Company</th>
-                                                    <th
-                                                        class="px-4 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                                        Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="contacts-table-body">
-                                                <!-- Contact Rows Injected Here -->
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
 

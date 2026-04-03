@@ -2014,7 +2014,8 @@ function updateDashboard() {
     // Basic Counters
     const totalCandidates = cachedCandidates.length;
     const activeJobs = cachedJobs.filter(j => j.status === 'Open').length;
-    document.getElementById('stat-total-candidates').innerText = totalCandidates;
+    const pipelineCount = cachedCandidates.filter(c => !['Hired', 'Rejected', 'Backed Out', 'Not Interested'].includes(c.stage)).length;
+    document.getElementById('stat-total-candidates').innerText = pipelineCount;
     document.getElementById('stat-active-jobs').innerText = activeJobs || cachedJobs.length;
 
     // Today's Interviews
@@ -2026,7 +2027,7 @@ function updateDashboard() {
 
 
     // Talent Pool
-    const talentPool = cachedCandidates.filter(c => c.stage !== 'Hired' && c.stage !== 'Rejected' && c.stage !== 'Backed Out' && c.stage !== 'Not Interested').length;
+    const talentPool = cachedCandidates.filter(c => c.isNew && c.stage !== 'Rejected').length;
     const tpEl = document.getElementById('stat-talent-pool');
     if (tpEl) tpEl.innerText = talentPool;
 
@@ -2084,18 +2085,10 @@ function updateDashboard() {
     const medianEl = document.getElementById('stat-median-ctc');
     if (medianEl) medianEl.innerText = medianAnnual ? `₹${(medianAnnual / 100000).toFixed(1)} L` : '₹0';
 
-    // Monthly Hires
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-    const monthlyHires = cachedCandidates.filter(c => {
-        if (c.stage !== 'Hired') return false;
-        const timestamp = c.hiredAt || c.createdAt;
-        if (!timestamp) return false;
-        const d = (timestamp.seconds) ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    }).length;
+    // Closed Jobs Count
+    const closedJobsCount = cachedJobs.filter(j => j.status === 'Closed').length;
     const mhEl = document.getElementById('stat-monthly-hires-big');
-    if (mhEl) mhEl.innerText = monthlyHires;
+    if (mhEl) mhEl.innerText = closedJobsCount;
 
 
     // Interview Stats
